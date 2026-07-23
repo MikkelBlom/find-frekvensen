@@ -8,10 +8,10 @@ import { getSerialManager } from "@/serial/webserial";
 import { getAudio } from "@/audio/sound";
 import { getPalette, type ThemeMode } from "@/game/palette";
 import { FIELD_COUNT_MAX } from "@/game/presets";
-import type { DifficultyPreset } from "@/game/types";
+import type { DifficultyPreset, GameConfig } from "@/game/types";
 
 const NUDGE_STEP = 25;
-const THEME_KEY = "frekvens-theme-mode";
+const CONFIG_KEY = "frekvens-config";
 
 function applyTheme(mode: ThemeMode) {
   if (typeof document === "undefined") return;
@@ -43,20 +43,35 @@ export function useAppRuntime() {
     });
     serial.init();
 
-    // ---- theme: restore + persist + apply ----
-    const saved = (typeof localStorage !== "undefined" && localStorage.getItem(THEME_KEY)) as ThemeMode | null;
-    if (saved === "light" || saved === "dark") store.get().setThemeMode(saved);
+    // ---- settings: restore from localStorage, then persist on change ----
+    try {
+      const raw = localStorage.getItem(CONFIG_KEY);
+      if (raw) store.get().hydrateConfig(JSON.parse(raw) as Partial<GameConfig>);
+    } catch {
+      /* ignore corrupt/unavailable storage */
+    }
     applyTheme(store.get().config.themeMode);
-    const unsubTheme = store.subscribe((state, prev) => {
-      if (state.config.themeMode !== prev.config.themeMode) {
-        applyTheme(state.config.themeMode);
-        try {
-          localStorage.setItem(THEME_KEY, state.config.themeMode);
-        } catch {
-          /* ignore */
-        }
+    const unsubConfig = store.subscribe((state, prev) => {
+      // config is only replaced by config actions, so device/snapshot updates
+      // (which fire many times per second) don't trigger a write.
+      if (state.config === prev.config) return;
+      applyTheme(state.config.themeMode);
+      try {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(state.config));
+      } catch {
+        /* ignore */
       }
     });
+
+    // If sound was left on in a previous session, resume audio on the first user
+    // gesture (browsers require a gesture to start an AudioContext).
+    const resumeAudio = () => {
+      if (store.get().config.soundEnabled) void audio.enable();
+      window.removeEventListener("pointerdown", resumeAudio);
+      window.removeEventListener("keydown", resumeAudio);
+    };
+    window.addEventListener("pointerdown", resumeAudio);
+    window.addEventListener("keydown", resumeAudio);
 
     // ---- URL parameters ----
     const params = new URLSearchParams(window.location.search);
@@ -160,7 +175,9 @@ export function useAppRuntime() {
 
     return () => {
       window.removeEventListener("keydown", onKey);
-      unsubTheme();
+      window.removeEventListener("pointerdown", resumeAudio);
+      window.removeEventListener("keydown", resumeAudio);
+      unsubConfig();
       engine.stop();
     };
   }, []);

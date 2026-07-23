@@ -70,6 +70,8 @@ export interface StoreState {
   toggleThemeMode: () => void;
   setSoundEnabled: (on: boolean) => void;
   toggleSound: () => void;
+  /** Restore persisted settings, validated + merged over current defaults. */
+  hydrateConfig: (saved: Partial<GameConfig>) => void;
 
   // ---- device inputs (used by sim + serial) ----
   upsertDevice: (serial: Serial, pos: number, flags: number) => void;
@@ -145,6 +147,28 @@ export const useStore = create<StoreState>((set) => ({
     set((s) => ({
       config: { ...s.config, themeMode: s.config.themeMode === "dark" ? "light" : "dark" },
     })),
+
+  hydrateConfig: (saved) =>
+    set((s) => {
+      const base = s.config;
+      // Merge each saved level over the canonical default so newly-added preset
+      // fields are always present and level id/label/order stay fixed.
+      const levels = base.levels.map((def, i) => {
+        const sv = saved.levels?.[i];
+        return sv ? { ...def, ...sv, id: def.id, label: def.label } : def;
+      });
+      const themeMode =
+        saved.themeMode === "dark" || saved.themeMode === "light" ? saved.themeMode : base.themeMode;
+      return {
+        config: {
+          fieldCount: clampFieldCount(saved.fieldCount ?? base.fieldCount),
+          themeId: typeof saved.themeId === "string" ? saved.themeId : base.themeId,
+          themeMode,
+          soundEnabled: typeof saved.soundEnabled === "boolean" ? saved.soundEnabled : base.soundEnabled,
+          levels,
+        },
+      };
+    }),
 
   setSoundEnabled: (on) =>
     set((s) => ({ config: { ...s.config, soundEnabled: on } })),
