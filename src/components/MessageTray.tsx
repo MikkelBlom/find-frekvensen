@@ -1,6 +1,6 @@
 "use client";
 
-import { tokens } from "@/game/tokens";
+import { usePalette } from "@/lib/usePalette";
 import type { RevealItem } from "@/game/types";
 
 /**
@@ -17,6 +17,7 @@ export function MessageTray({
   accent: string;
   big?: boolean;
 }) {
+  const p = usePalette();
   return (
     <div className="flex items-center justify-center" style={{ gap: "1.5cqmin" }}>
       {items.map((item) => {
@@ -24,23 +25,21 @@ export function MessageTray({
         return (
           <div
             key={item.id}
-            className="flex items-center justify-center font-black"
+            className="flex items-center justify-center"
             style={{
               width: big ? "13cqmin" : "9cqmin",
               height: big ? "16cqmin" : "11cqmin",
               fontSize: big ? "10cqmin" : "7cqmin",
+              fontWeight: 900,
               borderRadius: "1.6cqmin",
-              background: found ? tokens.stationFound : tokens.trayEmpty,
-              color: found ? "#2a1c12" : tokens.trayEmptyBorder,
-              border: `0.5cqmin solid ${found ? tokens.stationFoundGlow : tokens.trayEmptyBorder}`,
-              boxShadow: found ? `0 0 3cqmin ${accent}55` : "none",
+              background: found ? p.found : p.trayEmpty,
+              color: found ? p.foundText : p.trayEmptyBorder,
+              border: `0.5cqmin solid ${found ? p.foundGlow : p.trayEmptyBorder}`,
+              boxShadow: found ? `0 0 2.4cqmin ${accent}44` : "none",
             }}
           >
-            <span
-              key={item.foundAtMs ?? "empty"}
-              className={found ? "reveal-pop" : ""}
-            >
-              {found ? item.payload : "•"}
+            <span key={item.foundAtMs ?? "empty"} className={found ? "reveal-pop" : ""}>
+              {found ? item.payload : "·"}
             </span>
           </div>
         );

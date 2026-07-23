@@ -13,10 +13,12 @@
 import { createLayout, hopStations, stationCountFor } from "./gameFactory";
 import { store } from "./store";
 import { tokens } from "./tokens";
-import { fieldTheme } from "./themes";
+import { getPalette, accentFor } from "./palette";
+import type { Palette } from "./palette";
 import type {
   DecoyDef,
   DeviceState,
+  DifficultyPreset,
   GameConfig,
   PanelPhase,
   PanelSnapshot,
@@ -35,6 +37,8 @@ interface PanelRuntime {
   index: number;
   serial: Serial | null;
   phase: PanelPhase;
+  /** Rung on the difficulty ladder: 0=green, 1=yellow, 2=red. */
+  levelIndex: number;
 
   stations: StationDef[];
   decoys: DecoyDef[];
@@ -111,13 +115,38 @@ export class GameEngine {
     p.dpr = dpr;
   }
 
-  /** Force a fresh game on a field (debug reset / difficulty change). */
-  resetPanel(index: number): void {
-    const p = this.panels[index];
-    if (p) this.startGame(p);
+  /** The preset for a panel's current rung on the ladder. */
+  private levelFor(p: PanelRuntime): DifficultyPreset {
+    const levels = store.get().config.levels;
+    return levels[Math.min(p.levelIndex, levels.length - 1)] ?? levels[0];
   }
-  resetAll(): void {
+
+  /** Reset a single field back to the first level (the UI reset button). */
+  resetPanelToStart(index: number): void {
+    const p = this.panels[index];
+    if (!p) return;
+    p.levelIndex = 0;
+    this.startGame(p);
+  }
+  /** Reset every active field back to the first level. */
+  resetAllToStart(): void {
+    for (const p of this.panels) {
+      if (!p.serial) continue;
+      p.levelIndex = 0;
+      this.startGame(p);
+    }
+  }
+  /** Regenerate active fields at their current level (after a live edit). */
+  regenerateAll(): void {
     for (const p of this.panels) if (p.serial) this.startGame(p);
+  }
+  /** Force every active field onto a specific level (debug/testing). */
+  setAllToLevel(levelIndex: number): void {
+    for (const p of this.panels) {
+      if (!p.serial) continue;
+      p.levelIndex = levelIndex;
+      this.startGame(p);
+    }
   }
   /**
    * Position the auto-solver should drive toward for a device's field: the
@@ -222,6 +251,7 @@ export class GameEngine {
       index,
       serial: null,
       phase: "waiting",
+      levelIndex: 0,
       stations: [],
       decoys: [],
       needlePos: 500,
@@ -271,15 +301,16 @@ export class GameEngine {
       const free = this.panels.find((p) => p.serial === null);
       if (!free) break; // more devices than fields — extras wait
       free.serial = serial;
+      free.levelIndex = 0; // a new child starts at the first level
       assigned.add(serial);
       this.startGame(free);
       free.needlePos = d.pos;
     }
   }
 
-  /** (Re)initialise a field's game from the current preset. */
+  /** (Re)initialise a field's game at its current level. */
   private startGame(p: PanelRuntime): void {
-    const { preset } = store.get().config;
+    const preset = this.levelFor(p);
     const layout = createLayout(preset);
     p.stations = layout.stations;
     p.decoys = layout.decoys;
@@ -308,7 +339,7 @@ export class GameEngine {
       return;
     }
 
-    const preset = config.preset;
+    const preset = this.levelFor(p);
 
     // Needle follows the device position, smoothed for a fluid feel.
     if (device) {
@@ -319,7 +350,9 @@ export class GameEngine {
     if (p.phase === "complete") {
       p.confetti.update(dt, p.cssH);
       if (p.completeAtMs != null && now - p.completeAtMs > tokens.timing.completeHoldMs) {
-        // Auto-reset for the next child (device still present).
+        // Climb to the next level (green → yellow → red), then stay on the
+        // hardest so a child keeps getting fresh red puzzles.
+        p.levelIndex = Math.min(p.levelIndex + 1, config.levels.length - 1);
         this.startGame(p);
       }
       return;
@@ -382,7 +415,7 @@ export class GameEngine {
     if (p.stations.length > 0 && p.stations.every((s) => s.found)) {
       p.phase = "complete";
       p.completeAtMs = now;
-      p.confetti.burst(p.cssW, p.cssH, fieldTheme(config.themeId, p.index).accent);
+      p.confetti.burst(p.cssW, p.cssH, accentFor(getPalette(config.themeMode), p.index));
       this.onEvent?.("complete", p.index);
     }
 
@@ -404,17 +437,18 @@ export class GameEngine {
       p.bg = null;
     }
 
-    // Rebuild the cached faceplate when size changes.
-    const key = `${p.cssW}x${p.cssH}x${p.dpr}`;
+    const palette = getPalette(config.themeMode);
+
+    // Rebuild the cached faceplate when size or theme changes.
+    const key = `${p.cssW}x${p.cssH}x${p.dpr}x${palette.mode}`;
     if (!p.bg || p.bgKey !== key) {
-      p.bg = this.buildFaceplate(p.cssW, p.cssH, p.dpr);
+      p.bg = this.buildFaceplate(p.cssW, p.cssH, p.dpr, palette);
       p.bgKey = key;
     }
 
     ctx.setTransform(p.dpr, 0, 0, p.dpr, 0, 0);
     ctx.clearRect(0, 0, p.cssW, p.cssH);
 
-    const accent = fieldTheme(config.themeId, p.index).accent;
     drawField(ctx, p.cssW, p.cssH, p.bg, {
       phase: p.phase,
       needlePos: p.needlePos,
@@ -425,8 +459,9 @@ export class GameEngine {
       stations: p.stations,
       nowMs: now,
       completeAtMs: p.completeAtMs,
-      accent,
-      preset: config.preset,
+      accent: accentFor(palette, p.index),
+      preset: this.levelFor(p),
+      palette,
     });
 
     // Confetti sits above the dial during the celebration.
@@ -441,20 +476,26 @@ export class GameEngine {
     }
   }
 
-  private buildFaceplate(cssW: number, cssH: number, dpr: number): HTMLCanvasElement {
+  private buildFaceplate(
+    cssW: number,
+    cssH: number,
+    dpr: number,
+    palette: Palette,
+  ): HTMLCanvasElement {
     const c = document.createElement("canvas");
     c.width = Math.round(cssW * dpr);
     c.height = Math.round(cssH * dpr);
     const ctx = c.getContext("2d")!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawFaceplate(ctx, cssW, cssH);
+    drawFaceplate(ctx, cssW, cssH, palette);
     return c;
   }
 
   private pushSnapshots(config: GameConfig, now: number): void {
     const devices = store.get().devices;
     const snaps: PanelSnapshot[] = this.panels.map((p) => {
-      const total = p.stations.length || stationCountFor(config.preset);
+      const preset = this.levelFor(p);
+      const total = p.stations.length || stationCountFor(preset);
       const revealed: RevealItem[] = p.stations.map((s) => ({
         id: s.id,
         payload: s.found ? s.payload : "",
@@ -474,11 +515,14 @@ export class GameEngine {
         foundCount: p.stations.filter((s) => s.found).length,
         totalStations: total,
         revealed,
-        messageMode: config.preset.messageMode,
-        message: config.preset.message,
-        pictureId: config.preset.pictureId,
+        messageMode: preset.messageMode,
+        message: preset.message,
+        pictureId: preset.pictureId,
         completeAtMs: p.completeAtMs,
         themeId: config.themeId,
+        levelIndex: p.levelIndex,
+        levelId: preset.id,
+        levelLabel: preset.label,
         ageMs: device ? now - device.lastSeenMs : -1,
       };
     });

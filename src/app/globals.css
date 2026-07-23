@@ -1,18 +1,13 @@
 @import "tailwindcss";
 
 /*
-  Base theme. Most colours live in src/game/tokens.ts (the single source of
-  truth, shared with the canvas renderer). Here we only set the page shell and a
-  few animations used by the DOM chrome.
+  Base shell. Colours are driven from src/game/palette.ts at runtime (light is
+  the default; dark is opt-in). We keep light values here so there's no dark
+  flash before hydration.
 */
 
 :root {
-  --app-bg: #0a0e14;
-  --app-bg-top: #121a26;
-  --app-bg-bottom: #070a10;
-  --text: #f4ead2;
-  --text-muted: #93a3b6;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -24,14 +19,15 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background-color: #efe7d6;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color: #181310;
 }
 
 body {
-  background:
-    radial-gradient(1200px 800px at 50% -10%, var(--app-bg-top), transparent 60%),
-    linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 100%),
-    var(--app-bg);
-  color: var(--text);
   font-family:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
     Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
@@ -39,7 +35,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The TV root fills the viewport and never scrolls horizontally. */
 .tv-root {
   height: 100vh;
   width: 100vw;
@@ -51,11 +46,11 @@ body {
 /* ---- Animations ---- */
 @keyframes reveal-pop {
   0% {
-    transform: scale(0.3) rotate(-12deg);
+    transform: scale(0.3) rotate(-10deg);
     opacity: 0;
   }
   60% {
-    transform: scale(1.18) rotate(4deg);
+    transform: scale(1.15) rotate(3deg);
     opacity: 1;
   }
   100% {
@@ -70,23 +65,23 @@ body {
 @keyframes idle-pulse {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.5;
   }
   50% {
     opacity: 1;
   }
 }
 .idle-pulse {
-  animation: idle-pulse 2.2s ease-in-out infinite;
+  animation: idle-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes complete-pop {
   0% {
-    transform: scale(0.6);
+    transform: scale(0.7);
     opacity: 0;
   }
   70% {
-    transform: scale(1.06);
+    transform: scale(1.04);
   }
   100% {
     transform: scale(1);
@@ -94,27 +89,13 @@ body {
   }
 }
 .complete-pop {
-  animation: complete-pop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-@keyframes soft-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6%);
-  }
-}
-.soft-bob {
-  animation: soft-bob 3s ease-in-out infinite;
+  animation: complete-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal-pop,
   .idle-pulse,
-  .complete-pop,
-  .soft-bob {
+  .complete-pop {
     animation: none;
   }
 }

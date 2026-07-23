@@ -10,11 +10,13 @@
 import { create } from "zustand";
 import type {
   DeviceState,
+  DifficultyPreset,
   GameConfig,
   PanelSnapshot,
   Serial,
 } from "./types";
-import { clonePreset, defaultConfig, FIELD_COUNT_MAX, FIELD_COUNT_MIN } from "./presets";
+import { defaultConfig, FIELD_COUNT_MAX, FIELD_COUNT_MIN } from "./presets";
+import type { ThemeMode } from "./palette";
 
 const MAX_SERIAL_LINES = 200;
 
@@ -61,9 +63,11 @@ export interface StoreState {
 
   // ---- config actions ----
   setFieldCount: (n: number) => void;
-  setPreset: (id: string) => void;
-  patchPreset: (patch: Partial<GameConfig["preset"]>) => void;
+  /** Edit one rung of the difficulty ladder (0=green, 1=yellow, 2=red). */
+  patchLevel: (levelIndex: number, patch: Partial<DifficultyPreset>) => void;
   setThemeId: (id: string) => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  toggleThemeMode: () => void;
   setSoundEnabled: (on: boolean) => void;
   toggleSound: () => void;
 
@@ -125,15 +129,22 @@ export const useStore = create<StoreState>((set) => ({
   setFieldCount: (n) =>
     set((s) => ({ config: { ...s.config, fieldCount: clampFieldCount(n) } })),
 
-  setPreset: (id) =>
-    set((s) => ({ config: { ...s.config, preset: clonePreset(id) } })),
-
-  patchPreset: (patch) =>
-    set((s) => ({
-      config: { ...s.config, preset: { ...s.config.preset, ...patch } },
-    })),
+  patchLevel: (levelIndex, patch) =>
+    set((s) => {
+      const levels = s.config.levels.map((lvl, i) =>
+        i === levelIndex ? { ...lvl, ...patch } : lvl,
+      );
+      return { config: { ...s.config, levels } };
+    }),
 
   setThemeId: (id) => set((s) => ({ config: { ...s.config, themeId: id } })),
+
+  setThemeMode: (mode) => set((s) => ({ config: { ...s.config, themeMode: mode } })),
+
+  toggleThemeMode: () =>
+    set((s) => ({
+      config: { ...s.config, themeMode: s.config.themeMode === "dark" ? "light" : "dark" },
+    })),
 
   setSoundEnabled: (on) =>
     set((s) => ({ config: { ...s.config, soundEnabled: on } })),

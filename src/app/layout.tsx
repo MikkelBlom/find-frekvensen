@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0a0e14",
+  themeColor: "#efe7d6",
 };
 
 // System font stack only — no next/font/google, so the app builds and runs

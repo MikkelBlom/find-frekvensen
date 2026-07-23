@@ -1,7 +1,7 @@
 "use client";
 
 import { getPicture } from "@/game/pictures";
-import { tokens } from "@/game/tokens";
+import { usePalette } from "@/lib/usePalette";
 
 /**
  * Image-mode reveal. The picture SVG is used as a CSS sprite: each grid tile
@@ -17,6 +17,7 @@ export function PictureReveal({
   foundTiles: Set<number>;
   maxSize?: string;
 }) {
+  const p = usePalette();
   const pic = getPicture(pictureId);
   const dataUri = `url("data:image/svg+xml,${encodeURIComponent(pic.svg.trim())}")`;
 
@@ -31,8 +32,8 @@ export function PictureReveal({
         gap: "0.6cqmin",
         borderRadius: "2cqmin",
         padding: "0.6cqmin",
-        background: tokens.faceGlassBottom,
-        border: `0.5cqmin solid ${tokens.panelBorder}`,
+        background: p.trayEmpty,
+        border: `0.5cqmin solid ${p.cardBorder}`,
       }}
     >
       {Array.from({ length: pic.rows * pic.cols }, (_, i) => {
@@ -48,15 +49,16 @@ export function PictureReveal({
             style={{
               borderRadius: "1cqmin",
               backgroundImage: found ? dataUri : "none",
-              backgroundColor: found ? "transparent" : tokens.trayEmpty,
+              backgroundColor: found ? "transparent" : p.trayEmpty,
               backgroundSize: `${pic.cols * 100}% ${pic.rows * 100}%`,
               backgroundPosition: `${xPct}% ${yPct}%`,
               backgroundRepeat: "no-repeat",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: tokens.trayEmptyBorder,
+              color: p.trayEmptyBorder,
               fontSize: "5cqmin",
+              fontWeight: 800,
             }}
           >
             {found ? "" : "?"}

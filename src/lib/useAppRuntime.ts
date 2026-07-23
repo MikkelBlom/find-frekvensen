@@ -6,15 +6,26 @@ import { getEngine } from "@/game/engine";
 import { getSimulator, type SimMode } from "@/sim/simulator";
 import { getSerialManager } from "@/serial/webserial";
 import { getAudio } from "@/audio/sound";
+import { getPalette, type ThemeMode } from "@/game/palette";
 import { FIELD_COUNT_MAX } from "@/game/presets";
+import type { DifficultyPreset } from "@/game/types";
 
 const NUDGE_STEP = 25;
+const THEME_KEY = "frekvens-theme-mode";
+
+function applyTheme(mode: ThemeMode) {
+  if (typeof document === "undefined") return;
+  const pal = getPalette(mode);
+  const root = document.documentElement;
+  root.style.backgroundColor = pal.pageBg;
+  root.style.colorScheme = mode;
+  root.setAttribute("data-theme", mode);
+}
 
 /**
- * Boots the whole client runtime: starts the engine loop, wires the simulator,
- * serial reader and (optional) audio, installs keyboard shortcuts, applies URL
- * parameters, and exposes a small window.__frekvens API used by the Playwright
- * screenshot script to drive deterministic states.
+ * Boots the client runtime: engine loop, simulator, serial, optional audio,
+ * theme persistence, keyboard shortcuts, URL params, and the window.__frekvens
+ * test API used by the Playwright screenshot script.
  */
 export function useAppRuntime() {
   useEffect(() => {
@@ -24,22 +35,36 @@ export function useAppRuntime() {
     const audio = getAudio();
 
     engine.setSimulator(sim);
-    engine.setEventHandler((type, index) => {
+    engine.setEventHandler((type) => {
       const cfg = store.get().config;
       if (!cfg.soundEnabled) return;
       if (type === "lock") audio.playLock();
       else if (type === "complete") audio.playComplete();
-      void index;
     });
     serial.init();
 
-    // ---- URL parameters (e.g. ?sim=1&fields=6&preset=yellow&debug=1) ----
+    // ---- theme: restore + persist + apply ----
+    const saved = (typeof localStorage !== "undefined" && localStorage.getItem(THEME_KEY)) as ThemeMode | null;
+    if (saved === "light" || saved === "dark") store.get().setThemeMode(saved);
+    applyTheme(store.get().config.themeMode);
+    const unsubTheme = store.subscribe((state, prev) => {
+      if (state.config.themeMode !== prev.config.themeMode) {
+        applyTheme(state.config.themeMode);
+        try {
+          localStorage.setItem(THEME_KEY, state.config.themeMode);
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+
+    // ---- URL parameters ----
     const params = new URLSearchParams(window.location.search);
     if (params.get("debug") === "1") store.get().setDebug({ visible: true });
+    const themeParam = params.get("themeMode");
+    if (themeParam === "light" || themeParam === "dark") store.get().setThemeMode(themeParam);
     const fields = Number(params.get("fields"));
     if (Number.isFinite(fields) && fields >= 1) store.get().setFieldCount(fields);
-    const preset = params.get("preset");
-    if (preset) store.get().setPreset(preset);
     const theme = params.get("theme");
     if (theme) store.get().setThemeId(theme);
     if (params.get("sim") === "1" || params.get("sim") === "true") {
@@ -51,7 +76,12 @@ export function useAppRuntime() {
 
     engine.start();
 
-    // ---- window test API (for Playwright / manual debugging) ----
+    // ---- window test API ----
+    const patchAllLevels = (patch: Partial<DifficultyPreset>) => {
+      const n = store.get().config.levels.length;
+      for (let i = 0; i < n; i++) store.get().patchLevel(i, patch);
+      engine.regenerateAll();
+    };
     const api = {
       store,
       enableSim: () => store.get().setSimEnabled(true),
@@ -60,10 +90,11 @@ export function useAppRuntime() {
         sim.removeAll();
       },
       setFields: (n: number) => store.get().setFieldCount(n),
-      setPreset: (id: string) => store.get().setPreset(id),
       setTheme: (id: string) => store.get().setThemeId(id),
-      setMessageMode: (m: "word" | "image") => store.get().patchPreset({ messageMode: m }),
-      setPicture: (id: string) => store.get().patchPreset({ pictureId: id }),
+      setThemeMode: (m: ThemeMode) => store.get().setThemeMode(m),
+      setAllLevel: (idx: number) => engine.setAllToLevel(idx),
+      setMessageMode: (m: "word" | "image") => patchAllLevels({ messageMode: m }),
+      setPicture: (id: string) => patchAllLevels({ pictureId: id }),
       setSound: (on: boolean) => store.get().setSoundEnabled(on),
       addDevices: (n: number, mode: SimMode = "sweep") => {
         store.get().setSimEnabled(true);
@@ -75,29 +106,26 @@ export function useAppRuntime() {
         const serialId = store.get().snapshots[fieldIndex]?.serial;
         if (serialId) sim.setPos(serialId, pos);
       },
-      // Park a field's needle just outside a station's lock window: a warm,
-      // clearing-signal state that will not auto-lock. For screenshots.
       warmField: (fieldIndex: number, offset = 70) => {
         const serialId = store.get().snapshots[fieldIndex]?.serial;
         if (!serialId) return;
         const target = engine.solveTargetFor(serialId);
         if (target != null) sim.setPos(serialId, target - offset);
       },
-      // Park a field's needle exactly on a station so the lock ring fills.
       lockOn: (fieldIndex: number) => {
         const serialId = store.get().snapshots[fieldIndex]?.serial;
         if (!serialId) return;
         const target = engine.solveTargetFor(serialId);
         if (target != null) sim.setPos(serialId, target);
       },
-      revealField: (i: number) => engine.resetPanel(i),
       solveField: (i: number) => {
         const serialId = store.get().snapshots[i]?.serial;
         if (serialId) sim.setMode(serialId, "solve");
       },
-      revealAllStations: (i: number) => engine.revealAll(i),
       revealCount: (i: number, k: number) => engine.revealCount(i, k),
-      resetAll: () => engine.resetAll(),
+      revealAllStations: (i: number) => engine.revealAll(i),
+      resetField: (i: number) => engine.resetPanelToStart(i),
+      resetAll: () => engine.resetAllToStart(),
       showDebug: (b: boolean) => store.get().setDebug({ visible: b }),
     };
     (window as unknown as { __frekvens: typeof api }).__frekvens = api;
@@ -111,7 +139,6 @@ export function useAppRuntime() {
         store.get().toggleDebug();
         return;
       }
-      // digit keys select the active field
       if (/^[0-9]$/.test(e.key)) {
         const idx = e.key === "0" ? 9 : Number(e.key) - 1;
         if (idx < store.get().config.fieldCount) store.get().setActiveField(idx);
@@ -126,13 +153,14 @@ export function useAppRuntime() {
         if (serialId) sim.nudge(serialId, NUDGE_STEP);
         e.preventDefault();
       } else if (e.key === "r" || e.key === "R") {
-        engine.resetAll();
+        engine.resetAllToStart();
       }
     };
     window.addEventListener("keydown", onKey);
 
     return () => {
       window.removeEventListener("keydown", onKey);
+      unsubTheme();
       engine.stop();
     };
   }, []);

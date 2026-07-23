@@ -3,7 +3,6 @@
 // point at from across the room. Themes are swappable live from the debug panel
 // and easy to extend — add an entry to THEMES.
 
-import { accentForIndex } from "./tokens";
 import type { FieldTheme } from "./types";
 
 interface ThemeDef {
@@ -13,11 +12,12 @@ interface ThemeDef {
   entries: { icon: string; name: string }[];
 }
 
+// Numbers theme has no emoji — the field renders a clean numbered badge instead.
 const NUMBERS: ThemeDef = {
   id: "numbers",
   label: "Numre",
   entries: Array.from({ length: 10 }, (_, i) => ({
-    icon: "📻",
+    icon: "",
     name: `Radio ${i + 1}`,
   })),
 };
@@ -77,9 +77,9 @@ export const THEMES: ThemeDef[] = [NUMBERS, ANIMALS, SPACE, PIONEERS];
 
 export const DEFAULT_THEME_ID = "numbers";
 
-/** Resolve the { icon, name, accent } identity for a panel index under a theme. */
+/** Resolve the { icon, name } identity for a panel index under a theme. */
 export function fieldTheme(themeId: string, index: number): FieldTheme {
   const theme = THEMES.find((t) => t.id === themeId) ?? NUMBERS;
   const entry = theme.entries[index % theme.entries.length];
-  return { icon: entry.icon, name: entry.name, accent: accentForIndex(index) };
+  return { icon: entry.icon, name: entry.name };
 }

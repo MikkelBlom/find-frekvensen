@@ -5,11 +5,11 @@
 // Red    – narrow stations plus frequency HOPPING (Hedy Lamarr's idea): the
 //          final signal keeps jumping, so you must re-catch it.
 //
-// Word-mode messages tie into Ada Lovelace Day: green spells ADA, yellow/red
-// spell HEDY. Everything here is a plain data copy — switching difficulty loads
-// a fresh clone so the debug panel can edit a working copy safely.
+// Each field climbs this ladder INDEPENDENTLY (green → yellow → red): complete
+// one level and that field advances to the next. Word-mode messages tie into
+// Ada Lovelace Day: green spells ADA, yellow/red spell HEDY. Level colours come
+// from the active palette (see levelColor()).
 
-import { difficultyColors } from "./tokens";
 import type { DifficultyPreset, GameConfig } from "./types";
 import { DEFAULT_THEME_ID } from "./themes";
 
@@ -17,7 +17,6 @@ export const PRESETS: Record<string, DifficultyPreset> = {
   green: {
     id: "green",
     label: "Grøn",
-    accent: difficultyColors.green,
     stationCount: 3,
     width: 90,
     widthJitter: 0.1,
@@ -35,7 +34,6 @@ export const PRESETS: Record<string, DifficultyPreset> = {
   yellow: {
     id: "yellow",
     label: "Gul",
-    accent: difficultyColors.yellow,
     stationCount: 4,
     width: 55,
     widthJitter: 0.2,
@@ -53,7 +51,6 @@ export const PRESETS: Record<string, DifficultyPreset> = {
   red: {
     id: "red",
     label: "Rød",
-    accent: difficultyColors.red,
     stationCount: 4,
     width: 46,
     widthJitter: 0.25,
@@ -70,20 +67,27 @@ export const PRESETS: Record<string, DifficultyPreset> = {
   },
 };
 
-export const DEFAULT_PRESET_ID = "green";
+/** The fixed difficulty ladder order. */
+export const LEVEL_ORDER = ["green", "yellow", "red"] as const;
 
 /** Deep-clone a preset so it can be edited as a live working copy. */
 export function clonePreset(id: string): DifficultyPreset {
-  const src = PRESETS[id] ?? PRESETS[DEFAULT_PRESET_ID];
+  const src = PRESETS[id] ?? PRESETS.green;
   return { ...src };
+}
+
+/** Fresh editable working copies of the whole ladder. */
+export function defaultLevels(): DifficultyPreset[] {
+  return LEVEL_ORDER.map((id) => clonePreset(id));
 }
 
 export function defaultConfig(): GameConfig {
   return {
     fieldCount: 6,
-    preset: clonePreset(DEFAULT_PRESET_ID),
+    levels: defaultLevels(),
     themeId: DEFAULT_THEME_ID,
     soundEnabled: false, // sound is a pure "plus" — starts off
+    themeMode: "light", // light by default
   };
 }
 

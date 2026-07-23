@@ -64,8 +64,6 @@ export interface DecoyDef {
 export interface DifficultyPreset {
   id: DifficultyId;
   label: string;
-  /** Accent colour for the difficulty chip in the UI. */
-  accent: string;
   /** Number of stations to hunt. */
   stationCount: number;
   /** Nominal capture-window width in dial units (0–1000 scale). */
@@ -96,12 +94,17 @@ export interface DifficultyPreset {
 export interface GameConfig {
   /** Number of on-screen fields, 1–10. */
   fieldCount: number;
-  /** The active, editable difficulty working copy. */
-  preset: DifficultyPreset;
+  /**
+   * The difficulty ladder (working copies of green/yellow/red). Each field
+   * climbs this ladder independently: green → yellow → red. Editable live.
+   */
+  levels: DifficultyPreset[];
   /** Field identity theme id (numbers / animals / space …). */
   themeId: string;
   /** Sound is a pure "plus" — never required. Starts off. */
   soundEnabled: boolean;
+  /** Light (default) or dark. */
+  themeMode: "light" | "dark";
 }
 
 /** A revealed item shown in a field's message tray. */
@@ -138,13 +141,16 @@ export interface PanelSnapshot {
   pictureId: string;
   completeAtMs: number | null;
   themeId: string;
+  /** This field's current rung on the difficulty ladder (0=green…). */
+  levelIndex: number;
+  levelId: string;
+  levelLabel: string;
   /** Milliseconds since this panel's device was last seen (for debug). */
   ageMs: number;
 }
 
-/** Field identity (icon + name + accent colour) for one panel index. */
+/** Field identity (icon + name) for one panel index. Accent comes from the palette. */
 export interface FieldTheme {
   icon: string;
   name: string;
-  accent: string;
 }

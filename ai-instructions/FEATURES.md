@@ -27,4 +27,9 @@ Status: Implemented / In progress / Planned.
 | Playwright screenshot self-test (1080p + 4K) | Implemented | `npm run shots` | 2026-07-21 |
 | Receiver + base-station firmware (MakeCode) | Implemented | `firmware/` | 2026-07-21 |
 | Visual regression baseline compare | Planned | spec §7.1.4 (optional) | — |
+| Light/dark theme system (light default, persisted) | Implemented | `src/game/palette.ts`, top-bar toggle | 2026-07-23 |
+| Vintage-radio visual redesign (non-slop) | Implemented | cream dials, wood cabinets, SVG icons | 2026-07-23 |
+| Per-field difficulty progression (green→yellow→red) | Implemented | each field climbs independently | 2026-07-23 |
+| Click-to-reset single field + reset all | Implemented | ↻ per field; "Nulstil alle" | 2026-07-23 |
+| Debug device-table jitter fix | Implemented | fixed table-layout + tabular-nums | 2026-07-23 |
 | Two-way channel ("you locked!" back to micro:bit) | Planned | optional v2, spec §3 | — |

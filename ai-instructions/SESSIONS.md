@@ -48,3 +48,76 @@ the simulator with no hardware.
   toolbar; persist config to localStorage.
 - Separate Appendix task (not this app): Grace "Bug-jagten" Scratch `.sb3`
   projects.
+
+---
+
+## 2026-07-23 — Claude Code (Opus 4.8) — Firmware pass (parallel to web rebuild)
+
+**Summary:** Reworked both micro:bit programs while another session rebuilds the
+web portion. No web/game code touched.
+
+- Verified every radio/sensor API used against the MakeCode reference
+  (`setGroup`, `setTransmitPower`, `sendString` **19-char cap**, `onReceivedString`,
+  `serial.setBaudRate`/`writeLine`, `input.acceleration(Dimension.X)`,
+  `onButtonPressed`, `control.deviceSerialNumber()`) — all correct as used.
+- Rewrote `firmware/receiver.js` (handheld TRANSMITTER) and
+  `firmware/basestation.js` (PC RECEIVER): unchanged line protocol
+  `R,<serial>|<pos>|<flags>`, clearer role-first headers, added a power-on
+  heartbeat icon on both. Confirmed the handheld is **one universal script**
+  (identity via `deviceSerialNumber()`, nothing per-device).
+- `firmware/README.md`: added a plain-language "which micro:bit gets which"
+  table to defuse the naming clash (repo's in-game "receiver" = the child's
+  handheld, which is the radio *transmitter*), and a radio-congestion note
+  (raise `TICK_MS` to 130–150 for 8–10 handhelds).
+
+**Issues encountered:** Terminology mismatch — the operator thinks
+"receiver = the unit in the PC", but the repo/`CLAUDE.md` invariant names the
+handheld `receiver.js`. Kept the canonical filenames (referenced across docs)
+and resolved it with explicit headers + the README table; flagged a rename as
+the user's call.
+
+**State:** Firmware only; not flashed to hardware this session. APIs
+doc-verified.
+
+**Next steps:**
+- Flash to real units and run the micro:bit → base-station → app chain end to
+  end; tune `SPEED`/`DEAD_ZONE`/`TICK_MS` on the day (WORKING_NOTES "Not yet
+  verified").
+- Decide whether to rename firmware files to the operator's mental model
+  (`transmitter.js` / `receiver.js`) — would also touch `CLAUDE.md`, README, notes.
+
+---
+
+## 2026-07-23 — Claude Code (Opus 4.8) — Light-mode redesign + per-field levels
+
+**Summary:** Reworked the whole look and several mechanics after operator feedback
+(strong light-mode preference; the dark UI read as "AI slop"; wanted per-field
+progression, click-to-reset, and a fix for the jittery device table).
+
+- **Theme system.** Split colour out of `tokens.ts` into `src/game/palette.ts`
+  (light + dark). **Light is the default**; dark is opt-in and persisted to
+  localStorage, toggled in the top bar. Canvas + DOM both read the active
+  `Palette`. Aesthetic: warm vintage radio — cream illuminated dials, wood
+  cabinets, restrained non-neon accents, dark grain on light (light grain on
+  dark). Dropped emoji-as-icon in the chrome (inline SVG marks; numbered badges
+  for the "numbers" theme).
+- **Per-field difficulty ladder.** `config.preset` → `config.levels` (green,
+  yellow, red working copies). Each field climbs green→yellow→red independently
+  (`PanelRuntime.levelIndex`, advances on complete, caps at red; a new device
+  starts at green). Level badge shown per field.
+- **Reset.** Per-field ↻ button → `resetPanelToStart`; "Nulstil alle" in the top
+  bar → `resetAllToStart`; debug "Sæt alle til niveau".
+- **Overlap fix:** the signal meter is hidden while a field is waiting, so the
+  "tune in" prompt has clean space.
+- **Debug panel** rewritten (by a sub-agent) for the palette + per-field levels
+  and the jitter fix: `table-layout: fixed` + `tabular-nums` + clamped/stable
+  age formatting so numeric readouts never reflow.
+
+**State:** `npm run build`, `tsc`, `eslint` clean. Reviewed light + dark
+screenshots (incl. 4K) — passes the §7.1 checklist. Saved user memories:
+prefers-light-mode, avoid-ai-slop-design.
+
+**Next steps:**
+- Live-verify per-field progression timing feels right (7 s celebrate → advance).
+- Optional: tidy remaining emoji in the operator debug panel; more pictures for
+  image mode.

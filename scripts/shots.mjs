@@ -24,65 +24,66 @@ async function boot(page) {
   await page.evaluate(() => window.__frekvens.showDebug(false));
 }
 
-async function configure(page, opts) {
-  await page.evaluate((o) => {
+// theme/fields/devices setup shared by scenarios
+async function setup(page, o) {
+  await page.evaluate((opts) => {
     const f = window.__frekvens;
-    if (o.preset) f.setPreset(o.preset);
-    if (o.theme) f.setTheme(o.theme);
-    if (o.messageMode) f.setMessageMode(o.messageMode);
-    if (o.picture) f.setPicture(o.picture);
-    if (typeof o.fields === "number") f.setFields(o.fields);
-    if (typeof o.devices === "number") f.addDevices(o.devices, o.mode || "sweep");
-  }, opts);
+    f.setThemeMode(opts.themeMode || "light");
+    if (opts.theme) f.setTheme(opts.theme);
+    if (opts.messageMode) f.setMessageMode(opts.messageMode);
+    if (opts.picture) f.setPicture(opts.picture);
+    if (typeof opts.fields === "number") f.setFields(opts.fields);
+    if (typeof opts.devices === "number") f.addDevices(opts.devices, opts.mode || "sweep");
+  }, o);
 }
 
 async function waitAssigned(page, n) {
   await page
     .waitForFunction(
-      (count) => {
-        const s = window.__frekvens.store.get();
-        return s.snapshots.filter((x) => x.serial).length >= count;
-      },
+      (count) => window.__frekvens.store.get().snapshots.filter((x) => x.serial).length >= count,
       n,
       { timeout: 8000 },
     )
     .catch(() => {});
 }
 
-// ---- Scenarios -------------------------------------------------------------
+// Put every active field on a ladder rung (0=green,1=yellow,2=red).
+async function setLevel(page, level) {
+  await page.evaluate((l) => window.__frekvens.setAllLevel(l), level);
+}
+
 const scenarios = [
   {
     name: "a-waiting",
     fourK: true,
     async run(page) {
-      await configure(page, { preset: "green", theme: "animals", fields: 6 });
+      await setup(page, { theme: "animals", fields: 6 });
       await sleep(page, 400);
     },
   },
   {
     name: "b-noise",
     async run(page) {
-      // Green has no decoys and clustered central stations, so a needle at the
-      // edge is genuinely cold → clean "no signal" static reference.
-      await configure(page, { preset: "green", theme: "numbers", fields: 6, devices: 6, mode: "idle" });
+      await setup(page, { theme: "numbers", fields: 6, devices: 6, mode: "idle" });
       await waitAssigned(page, 6);
+      await setLevel(page, 0); // green has no decoys → genuinely cold at the edge
+      await sleep(page, 250);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        for (let i = 0; i < 6; i++) f.setPos(i, 8);
+        for (let i = 0; i < 6; i++) window.__frekvens.setPos(i, 8);
       });
-      await sleep(page, 500);
+      await sleep(page, 450);
     },
   },
   {
     name: "c-warmth",
     fourK: true,
     async run(page) {
-      await configure(page, { preset: "yellow", theme: "space", fields: 6, devices: 6, mode: "solve" });
+      await setup(page, { theme: "space", fields: 6, devices: 6, mode: "solve" });
       await waitAssigned(page, 6);
+      await setLevel(page, 1);
       await sleep(page, 400);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        for (let i = 0; i < 6; i++) f.warmField(i, 62);
+        for (let i = 0; i < 6; i++) window.__frekvens.warmField(i, 62);
       });
       await sleep(page, 450);
     },
@@ -90,25 +91,25 @@ const scenarios = [
   {
     name: "d-lock",
     async run(page) {
-      await configure(page, { preset: "green", theme: "numbers", fields: 6, devices: 6, mode: "solve" });
+      await setup(page, { theme: "numbers", fields: 6, devices: 6, mode: "solve" });
       await waitAssigned(page, 6);
+      await setLevel(page, 0);
       await sleep(page, 400);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        for (let i = 0; i < 6; i++) f.lockOn(i);
+        for (let i = 0; i < 6; i++) window.__frekvens.lockOn(i);
       });
-      await sleep(page, 340); // mid lock-ring fill
+      await sleep(page, 340);
     },
   },
   {
     name: "e-reveal-progress",
     async run(page) {
-      await configure(page, { preset: "yellow", theme: "animals", fields: 6, devices: 6, mode: "manual" });
+      await setup(page, { theme: "animals", fields: 6, devices: 6, mode: "manual" });
       await waitAssigned(page, 6);
+      await setLevel(page, 1);
+      await sleep(page, 250);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        // Varying progress across fields for a lively board.
-        [0, 1, 2, 3, 1, 2].forEach((k, i) => f.revealCount(i, k));
+        [0, 1, 2, 3, 1, 2].forEach((k, i) => window.__frekvens.revealCount(i, k));
       });
       await sleep(page, 500);
     },
@@ -117,20 +118,22 @@ const scenarios = [
     name: "f-complete",
     fourK: true,
     async run(page) {
-      await configure(page, { preset: "green", theme: "animals", fields: 6, devices: 6, mode: "manual" });
+      await setup(page, { theme: "animals", fields: 6, devices: 6, mode: "manual" });
       await waitAssigned(page, 6);
+      await setLevel(page, 0);
+      await sleep(page, 250);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        for (let i = 0; i < 6; i++) f.revealAllStations(i);
+        for (let i = 0; i < 6; i++) window.__frekvens.revealAllStations(i);
       });
-      await sleep(page, 550); // catch confetti mid-air
+      await sleep(page, 550);
     },
   },
   {
     name: "g-layout-4",
     async run(page) {
-      await configure(page, { preset: "green", theme: "space", fields: 4, devices: 4, mode: "solve" });
+      await setup(page, { theme: "space", fields: 4, devices: 4, mode: "solve" });
       await waitAssigned(page, 4);
+      await setLevel(page, 0);
       await sleep(page, 700);
       await page.evaluate(() => {
         for (let i = 0; i < 4; i++) window.__frekvens.warmField(i, 55);
@@ -142,11 +145,12 @@ const scenarios = [
     name: "h-layout-8",
     fourK: true,
     async run(page) {
-      await configure(page, { preset: "yellow", theme: "numbers", fields: 8, devices: 8, mode: "manual" });
+      await setup(page, { theme: "numbers", fields: 8, devices: 8, mode: "manual" });
       await waitAssigned(page, 8);
+      await setLevel(page, 1);
+      await sleep(page, 250);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        [3, 1, 4, 0, 2, 4, 1, 3].forEach((k, i) => f.revealCount(i, k));
+        [3, 1, 4, 0, 2, 4, 1, 3].forEach((k, i) => window.__frekvens.revealCount(i, k));
       });
       await sleep(page, 500);
     },
@@ -154,8 +158,7 @@ const scenarios = [
   {
     name: "i-image-complete",
     async run(page) {
-      await configure(page, {
-        preset: "yellow",
+      await setup(page, {
         theme: "pioneers",
         messageMode: "image",
         picture: "satellite",
@@ -164,9 +167,10 @@ const scenarios = [
         mode: "manual",
       });
       await waitAssigned(page, 6);
+      await setLevel(page, 1);
+      await sleep(page, 250);
       await page.evaluate(() => {
-        const f = window.__frekvens;
-        for (let i = 0; i < 6; i++) f.revealAllStations(i);
+        for (let i = 0; i < 6; i++) window.__frekvens.revealAllStations(i);
       });
       await sleep(page, 550);
     },
@@ -174,18 +178,34 @@ const scenarios = [
   {
     name: "j-red-hop",
     async run(page) {
-      await configure(page, { preset: "red", theme: "space", fields: 6, devices: 6, mode: "solve" });
+      await setup(page, { theme: "space", fields: 6, devices: 6, mode: "solve" });
       await waitAssigned(page, 6);
+      await setLevel(page, 2);
       await sleep(page, 900);
     },
   },
   {
     name: "k-debug-open",
     async run(page) {
-      await configure(page, { preset: "red", theme: "numbers", fields: 6, devices: 6, mode: "sweep" });
+      await setup(page, { theme: "numbers", fields: 6, devices: 6, mode: "sweep" });
       await waitAssigned(page, 6);
+      await setLevel(page, 2);
       await page.evaluate(() => window.__frekvens.showDebug(true));
       await sleep(page, 500);
+    },
+  },
+  {
+    name: "l-dark-mode",
+    fourK: true,
+    async run(page) {
+      await setup(page, { themeMode: "dark", theme: "animals", fields: 6, devices: 6, mode: "solve" });
+      await waitAssigned(page, 6);
+      await setLevel(page, 1);
+      await sleep(page, 400);
+      await page.evaluate(() => {
+        for (let i = 0; i < 6; i++) window.__frekvens.warmField(i, 62);
+      });
+      await sleep(page, 450);
     },
   },
 ];

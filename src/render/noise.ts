@@ -1,15 +1,16 @@
-// Pre-generated "snow" tiles for the radio static overlay.
+// Pre-generated grain/"snow" tiles for the weak-signal overlay, themed by the
+// active palette: dark grain on a light dial, light grain on a dark dial.
 //
-// Generating random static every frame for up to 10 fields is wasteful, so we
-// bake a handful of tiles once and cycle through them, modulating overall
-// opacity by the (inverse) signal strength. More noise = weaker signal.
+// Generating random grain every frame for up to 10 fields is wasteful, so we
+// bake a handful of tiles once per palette and cycle through them, modulating
+// opacity by the (inverse) signal strength.
 
-import { tokens } from "@/game/tokens";
+import type { Palette } from "@/game/palette";
 
 const TILE_SIZE = 160;
 const TILE_COUNT = 8;
 
-let tiles: HTMLCanvasElement[] | null = null;
+const cache = new Map<string, HTMLCanvasElement[]>();
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
@@ -20,11 +21,14 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-/** Lazily build (once) and return the set of noise tiles. */
-export function getNoiseTiles(): HTMLCanvasElement[] {
-  if (tiles) return tiles;
-  const [tr, tg, tb] = hexToRgb(tokens.noiseTint);
-  tiles = [];
+/** Lazily build (once per theme) and return the set of grain tiles. */
+export function getNoiseTiles(palette: Palette): HTMLCanvasElement[] {
+  const key = `${palette.noise}-${palette.noiseDark}`;
+  const existing = cache.get(key);
+  if (existing) return existing;
+
+  const [nr, ng, nb] = hexToRgb(palette.noise);
+  const tiles: HTMLCanvasElement[] = [];
   for (let t = 0; t < TILE_COUNT; t++) {
     const c = document.createElement("canvas");
     c.width = TILE_SIZE;
@@ -34,17 +38,16 @@ export function getNoiseTiles(): HTMLCanvasElement[] {
     const data = img.data;
     for (let i = 0; i < data.length; i += 4) {
       const v = Math.random();
-      if (v > 0.7) {
-        // bright speck
-        const b = 0.5 + v * 0.5;
-        data[i] = Math.min(255, tr * 0.45 + 255 * b * 0.55);
-        data[i + 1] = Math.min(255, tg * 0.45 + 255 * b * 0.55);
-        data[i + 2] = Math.min(255, tb * 0.45 + 255 * b * 0.55);
-        data[i + 3] = Math.floor(120 + v * 90);
-      } else if (v < 0.12) {
-        // faint dark grain, keeps it from looking uniform
-        data[i] = data[i + 1] = data[i + 2] = 0;
-        data[i + 3] = 40;
+      if (v > 0.68) {
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+        data[i + 3] = Math.floor(90 + v * 110);
+      } else if (v < 0.14) {
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+        data[i + 3] = 30;
       } else {
         data[i + 3] = 0;
       }
@@ -52,6 +55,7 @@ export function getNoiseTiles(): HTMLCanvasElement[] {
     ctx.putImageData(img, 0, 0);
     tiles.push(c);
   }
+  cache.set(key, tiles);
   return tiles;
 }
 
