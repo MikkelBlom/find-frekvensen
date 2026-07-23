@@ -121,3 +121,31 @@ prefers-light-mode, avoid-ai-slop-design.
 - Live-verify per-field progression timing feels right (7 s celebrate → advance).
 - Optional: tidy remaining emoji in the operator debug panel; more pictures for
   image mode.
+
+---
+
+## 2026-07-23 — Claude Code (Opus 4.8) — Portable Electron .exe
+
+**Summary:** Packaged the app as a self-contained portable Windows .exe so it can
+run on a venue screen PC with nothing installed and no internet (operator wasn't
+sure they'd have their own PC).
+
+- `next.config.ts` → `output: "export"`: `next build` now writes a static `out/`.
+- `electron/main.js`: tiny Node http server serves `out/` over 127.0.0.1 (a
+  secure context, required for Web Serial), loaded fullscreen. Auto-selects the
+  base-station micro:bit by USB vendor id 0x0d28 in the `select-serial-port`
+  handler — no port picker. F11/Esc fullscreen, Ctrl+Q quit, single-instance.
+- `package.json`: `main` → electron, scripts `electron`/`dist`/`exe`, and an
+  electron-builder `build` block (win portable → `dist/Find-Frekvensen-<ver>.exe`).
+  Moved next/react/zustand to devDependencies so the exe bundles only Electron +
+  `out/` (lean). `/dist` gitignored.
+- Validated the static-server logic against the real `out/` (root, SPA fallback,
+  asset content-types all correct). Could not launch-test the GUI here (no
+  display / no hardware) — needs a real double-click + micro:bit check.
+
+**Standing ask:** rebuild the exe (`npm run exe`) after any app change. Saved as
+memory `rebuild-exe-after-changes`.
+
+**Next steps:**
+- Double-click the exe on a real Windows desktop and confirm it opens fullscreen
+  and auto-connects to the base station.

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Electron main process is CommonJS (require()) + electron-builder output.
+    "electron/**",
+    "dist/**",
   ]),
 ]);
 

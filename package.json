@@ -1,29 +1,55 @@
 {
   "name": "find-frekvensen",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "Interaktiv radio-tuning station til Ada Lovelace Dag (Find Frekvensen).",
+  "author": "Coding Pirates Odense",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "serve": "npx --yes serve out -l 3000",
     "lint": "eslint",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "electron": "electron .",
+    "dist": "electron-builder --win portable",
+    "exe": "npm run build && npm run dist"
   },
-  "dependencies": {
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "zustand": "^5.0.14"
+  "build": {
+    "appId": "dk.codingpirates.findfrekvensen",
+    "productName": "Find Frekvensen",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "Find-Frekvensen-${version}.exe"
+    }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "next": "16.2.10",
     "playwright": "^1.61.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "zustand": "^5.0.14"
   }
 }

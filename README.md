@@ -24,24 +24,37 @@ the firmware is "dumb" and only reports its own needle position. So difficulty
 and puzzles can be changed live with no re-flashing, and the whole game runs and
 is tested **without any hardware** via the built-in simulator.
 
-## Run it
+## Run it on the day — the portable .exe (recommended)
+
+The whole app is packaged as a **single self-contained Windows .exe**. It bundles
+its own Chromium, runs fully offline, needs nothing installed on the venue PC,
+and **auto-connects to the base-station micro:bit** (no browser, no port picker).
+
+- Build it: `npm run exe` → produces `dist/Find-Frekvensen-<version>.exe`
+- Copy that one file to a USB stick, double-click it on the venue PC.
+- It opens fullscreen. Plug in the base station and it connects automatically
+  (F11 toggles fullscreen, Esc leaves it, Ctrl+Q quits).
+
+Rebuild the exe whenever the app changes — just run `npm run exe` again.
+
+## Develop / run in a browser
 
 Requirements: Node 20.9+ and **Chrome or Edge** (Web Serial API).
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npm run dev      # http://localhost:3000  (development)
 ```
 
-For the day, a production build runs fully offline on localhost:
+Or serve the built static app in a browser (Chrome/Edge) without the exe:
 
 ```bash
-npm run build
-npm run start    # http://localhost:3000
+npm run build    # writes the static site to out/
+npm run serve    # serves out/ at http://localhost:3000
 ```
 
-Open in Chrome/Edge, press **F11** for fullscreen on the TV, and click
-**Forbind base-station** to connect the micro:bit.
+In a browser, click **Forbind base-station** and pick the micro:bit's port; press
+**F11** for fullscreen on the TV.
 
 ### Try it with no hardware
 
