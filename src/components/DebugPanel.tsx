@@ -390,8 +390,52 @@ function DebugPanelBody() {
             </button>
           ))}
         </div>
+
+        {(() => {
+          const s = activeSnap?.serial;
+          const dev = s ? devices[s] : undefined;
+          return (
+            <div style={{ marginTop: 10 }}>
+              <Label palette={palette}>Fjernstyr felt {activeField + 1} (vip-test)</Label>
+              {s ? (
+                <>
+                  <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
+                    <button style={btnSm} onClick={() => simulator.nudge(s, -30)}>◀</button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1000}
+                      value={dev?.pos ?? 500}
+                      onChange={(e) => simulator.setPos(s, Number(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <button style={btnSm} onClick={() => simulator.nudge(s, 30)}>▶</button>
+                  </div>
+                  <div className="flex" style={{ gap: 6 }}>
+                    <button style={{ ...btnSm, flex: 1 }} onClick={() => simulator.pressButton(s, "A")}>A (fin −)</button>
+                    <button style={{ ...btnSm, flex: 1 }} onClick={() => simulator.pressButton(s, "B")}>B (fin +)</button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: palette.textMuted, fontSize: 12 }}>
+                  Ingen enhed på felt {activeField + 1}.{" "}
+                  <button
+                    style={btnSm}
+                    onClick={() => {
+                      st.setSimEnabled(true);
+                      simulator.ensureCount(config.fieldCount, "manual");
+                    }}
+                  >
+                    Tilføj testenheder
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <p style={{ color: palette.textMuted, marginTop: 8, fontSize: 11 }}>
-          Taster: <b>d</b> debug · <b>1–0</b> vælg felt · <b>← →</b> flyt nål · <b>r</b> reset
+          Taster: <b>d</b> debug · <b>1–0</b> vælg felt · <b>← →</b> flyt nål (Shift = større) · <b>r</b> reset
         </p>
       </Section>
     </aside>

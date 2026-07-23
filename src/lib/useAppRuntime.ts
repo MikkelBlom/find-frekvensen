@@ -145,10 +145,16 @@ export function useAppRuntime() {
     };
     (window as unknown as { __frekvens: typeof api }).__frekvens = api;
 
-    // ---- keyboard shortcuts ----
+    // ---- keyboard shortcuts (test-control the "vip"/needle from the PC) ----
+    const TEXT_TYPES = ["text", "number", "search", "email", "url", "password", "tel"];
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      const type = (el as HTMLInputElement | null)?.type;
+      // Only ignore shortcuts while typing in a text field (so the caret can
+      // move). Arrows still control the needle when a slider/select is focused.
+      const typing = tag === "TEXTAREA" || (tag === "INPUT" && TEXT_TYPES.includes(type ?? ""));
+      if (typing) return;
 
       if (e.key === "d" || e.key === "D") {
         store.get().toggleDebug();
@@ -161,12 +167,11 @@ export function useAppRuntime() {
       }
       const active = store.get().debug.activeField;
       const serialId = store.get().snapshots[active]?.serial;
-      if (e.key === "ArrowLeft") {
-        if (serialId) sim.nudge(serialId, -NUDGE_STEP);
+      const step = e.shiftKey ? 60 : NUDGE_STEP; // hold Shift for a bigger step
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        // preventDefault so a focused slider/select doesn't also react.
         e.preventDefault();
-      } else if (e.key === "ArrowRight") {
-        if (serialId) sim.nudge(serialId, NUDGE_STEP);
-        e.preventDefault();
+        if (serialId) sim.nudge(serialId, e.key === "ArrowLeft" ? -step : step);
       } else if (e.key === "r" || e.key === "R") {
         engine.resetAllToStart();
       }

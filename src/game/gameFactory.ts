@@ -4,6 +4,11 @@
 // Word-mode: one station per letter of the message, payload = the letter.
 // Image-mode: one station per picture tile, payload = the tile index in reading
 // order, so the picture always assembles correctly regardless of find order.
+//
+// IMPORTANT: nothing is placed in a dead-zone around the centre of the dial.
+// The needle starts in the middle (a level micro:bit reports the centre), so a
+// station there would be locked instantly without tuning. Keeping the centre
+// clear means every child has to actually hunt.
 
 import { pictureTileCount } from "./pictures";
 import type { DecoyDef, DifficultyPreset, StationDef } from "./types";
@@ -11,6 +16,8 @@ import type { DecoyDef, DifficultyPreset, StationDef } from "./types";
 const DIAL_MIN = 0;
 const DIAL_MAX = 1000;
 const EDGE_MARGIN = 70;
+const CENTER = 500;
+const CENTER_DEADZONE = 120; // no station/decoy within ±this of the centre
 
 export interface FieldLayout {
   stations: StationDef[];
@@ -43,33 +50,71 @@ function rand(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+type Segment = [number, number];
+
+/** The parts of [lo, hi] that lie outside the centre dead-zone. */
+function usableSegments(lo: number, hi: number): Segment[] {
+  const dzLo = CENTER - CENTER_DEADZONE;
+  const dzHi = CENTER + CENTER_DEADZONE;
+  const segs: Segment[] = [];
+  if (lo < dzLo) segs.push([lo, Math.min(hi, dzLo)]);
+  if (hi > dzHi) segs.push([Math.max(lo, dzHi), hi]);
+  // If the whole spread sits inside the dead-zone, fall back to the full dial
+  // (minus the dead-zone) so stations still have somewhere to go.
+  if (segs.length === 0) {
+    return [
+      [DIAL_MIN + EDGE_MARGIN, dzLo],
+      [dzHi, DIAL_MAX - EDGE_MARGIN],
+    ];
+  }
+  return segs;
+}
+
+/** Map a 0..totalLength parameter onto concatenated segments (never the gap). */
+function mapToSegments(t: number, segs: Segment[]): number {
+  let acc = 0;
+  for (const [s, e] of segs) {
+    const len = e - s;
+    if (t <= acc + len) return s + (t - acc);
+    acc += len;
+  }
+  const last = segs[segs.length - 1];
+  return last[1];
+}
+
+/** Evenly distribute `count` positions across the segments, with jitter. */
+function placeInSegments(segs: Segment[], count: number, jitterFrac: number): number[] {
+  const total = segs.reduce((a, [s, e]) => a + (e - s), 0);
+  const cell = total / count;
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) {
+    let t = cell * (i + 0.5) + rand(-cell * jitterFrac, cell * jitterFrac);
+    t = clamp(t, 0, total - 0.001);
+    out.push(mapToSegments(t, segs));
+  }
+  return out;
+}
+
 /** Build a fresh, randomised layout for one field from a preset. */
 export function createLayout(preset: DifficultyPreset): FieldLayout {
   const count = stationCountFor(preset);
 
-  // Centred sub-range the stations are spread across.
   const usableLo = DIAL_MIN + EDGE_MARGIN;
   const usableHi = DIAL_MAX - EDGE_MARGIN;
   const usableSpan = usableHi - usableLo;
   const span = usableSpan * clamp01(preset.spread);
-  const lo = 500 - span / 2;
-  const cell = span / count;
+  const lo = Math.max(usableLo, CENTER - span / 2);
+  const hi = Math.min(usableHi, CENTER + span / 2);
 
-  const stations: StationDef[] = [];
-  for (let i = 0; i < count; i++) {
-    const cellCenter = lo + cell * (i + 0.5);
-    // Jitter within the cell, but never so much that stations overlap.
-    const jitter = cell * 0.3;
-    const position = clamp(
-      cellCenter + rand(-jitter, jitter),
-      usableLo,
-      usableHi,
-    );
+  const segs = usableSegments(lo, hi);
+  const positions = placeInSegments(segs, count, 0.28);
+
+  const stations: StationDef[] = positions.map((position, i) => {
     const width = Math.max(
       24,
       preset.width * (1 + rand(-preset.widthJitter, preset.widthJitter)),
     );
-    stations.push({
+    return {
       id: `st-${i}`,
       position,
       basePosition: position,
@@ -77,8 +122,8 @@ export function createLayout(preset: DifficultyPreset): FieldLayout {
       payload: payloadFor(preset, i),
       found: false,
       foundAtMs: null,
-    });
-  }
+    };
+  });
 
   const decoys = placeDecoys(preset, stations, usableLo, usableHi);
   return { stations, decoys };
@@ -97,6 +142,7 @@ function placeDecoys(
     attempts++;
     const pos = rand(lo, hi);
     const tooClose =
+      Math.abs(pos - CENTER) < CENTER_DEADZONE || // keep the centre clear too
       stations.some((s) => Math.abs(s.position - pos) < minGap) ||
       decoys.some((d) => Math.abs(d.position - pos) < minGap);
     if (!tooClose) {
@@ -104,6 +150,13 @@ function placeDecoys(
     }
   }
   return decoys;
+}
+
+/** A random dial position outside the centre dead-zone. */
+function randomOutsideCenter(lo: number, hi: number): number {
+  const segs = usableSegments(lo, hi);
+  const total = segs.reduce((a, [s, e]) => a + (e - s), 0);
+  return mapToSegments(Math.random() * total, segs);
 }
 
 /** Move unfound stations to fresh positions (frequency hopping). */
@@ -123,12 +176,20 @@ export function hopStations(preset: DifficultyPreset, stations: StationDef[]): v
       : unfound;
 
   for (const s of hopping) {
-    const target = rand(usableLo, usableHi);
+    let target = randomOutsideCenter(usableLo, usableHi);
     // Nudge it a meaningful distance from where it was, so a hop is noticeable.
-    s.position =
-      Math.abs(target - s.position) < 180
-        ? clamp(s.position + (Math.random() < 0.5 ? -1 : 1) * rand(180, 320), usableLo, usableHi)
-        : target;
+    if (Math.abs(target - s.position) < 180) {
+      target = clamp(
+        s.position + (Math.random() < 0.5 ? -1 : 1) * rand(180, 320),
+        usableLo,
+        usableHi,
+      );
+      // Keep it out of the dead-zone after the nudge.
+      if (Math.abs(target - CENTER) < CENTER_DEADZONE) {
+        target = randomOutsideCenter(usableLo, usableHi);
+      }
+    }
+    s.position = target;
   }
 }
 

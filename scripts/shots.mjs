@@ -221,6 +221,15 @@ async function main() {
       viewport: { width: vp.w, height: vp.h },
       deviceScaleFactor: 1,
     });
+    // Settings now persist to localStorage — clear it on every navigation so
+    // each scenario starts from clean defaults (no leakage between scenarios).
+    await context.addInitScript(() => {
+      try {
+        localStorage.clear();
+      } catch {
+        /* ignore */
+      }
+    });
     const page = await context.newPage();
 
     for (const sc of scenarios) {
