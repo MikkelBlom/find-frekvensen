@@ -37,9 +37,9 @@ export interface DeviceState {
 /** A hidden radio station the child hunts for on the dial. */
 export interface StationDef {
   id: string;
-  /** Current position on the dial, 0–1000 (may move when hopping). */
+  /** Current position on the dial, 0–1000 (drifts on moving levels). */
   position: number;
-  /** Original position, kept so a reset restores the layout. */
+  /** Home position it wanders around (moving levels) / restores on reset. */
   basePosition: number;
   /** Capture-window width in dial units; locks when |needle - position| <= width/2. */
   width: number;
@@ -48,6 +48,8 @@ export interface StationDef {
   found: boolean;
   /** performance.now timestamp when this station was locked (drives reveal animation). */
   foundAtMs: number | null;
+  /** Where a moving station is currently drifting toward (null = not moving). */
+  moveTarget: number | null;
 }
 
 /** A decoy raises the felt signal strength but can never be locked. */
@@ -78,11 +80,15 @@ export interface DifficultyPreset {
   warmRange: number;
   /** Continuous milliseconds inside the window required to lock. */
   lockMs: number;
-  /** Whether stations hop between frequencies (Hedy Lamarr's trick). */
-  hop: boolean;
-  hopIntervalMs: number;
-  /** "all": every unfound station hops. "last": only the final remaining one hops. */
-  hopMode: "all" | "last";
+  /**
+   * Whether the signal SLIDES back and forth (Hedy Lamarr's frequency hopping,
+   * reimagined as a moving target you have to follow rather than a teleport).
+   */
+  move: boolean;
+  /** Drift speed in dial units per second (when move is true). */
+  moveSpeed: number;
+  /** How far a station wanders either side of its home position. */
+  moveRange: number;
   messageMode: MessageMode;
   /** Word to spell out (word mode); one letter per station. */
   message: string;
@@ -128,8 +134,12 @@ export interface PanelSnapshot {
   needlePos: number;
   /** Real signal warmth toward the nearest unfound station, 0–1. */
   warmth: number;
-  /** Displayed warmth including decoys (drives the noise), 0–1. */
+  /** Felt signal for the bar/debug (only reaches full when capturable), 0–1. */
   displayWarmth: number;
+  /** True only when the needle is inside a real station's capture window. */
+  lockable: boolean;
+  /** Which way the nearest station is when warm: -1 left, +1 right, 0 none. */
+  directionHint: number;
   /** Lock progress toward the current station, 0–1. */
   lockProgress: number;
   lockingStationId: string | null;

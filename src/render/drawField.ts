@@ -15,7 +15,9 @@ export interface FieldDrawState {
   phase: PanelPhase;
   needlePos: number; // 0..1000
   warmth: number; // real, toward nearest unfound station
-  displayWarmth: number; // felt, includes decoys — drives grain + meter
+  displayWarmth: number; // felt bar level — only full when capturable
+  lockable: boolean; // needle inside a real station window (can capture)
+  directionHint: number; // -1 left / +1 right / 0 — which way the station is
   lockProgress: number; // 0..1
   lockingStationId: string | null;
   stations: StationDef[];
@@ -163,55 +165,70 @@ export function drawField(
   const needleX = posToX(s.needlePos, g.band);
   const bandMid = g.band.y + g.band.h * 0.5;
   const felt = complete ? 1 : s.displayWarmth;
+  const onStation = s.lockable && !complete;
 
-  // 1) Grain across the band — heavier the weaker the signal. The whole field
-  //    visibly clears as you home in on a station.
-  const noiseLevel = waiting ? 0.12 : complete ? 0.03 : clamp(1 - felt, 0.04, 0.68);
-  drawNoise(ctx, g.band, s.nowMs, noiseLevel, pal);
+  // 1) Base grain — cold across the band. Only the needle's spot clears, and it
+  //    only goes fully SHARP when the signal is actually capturable. This is the
+  //    fix for "the bar looked full but nothing happened": clear ≠ done, only
+  //    the crisp on-station state (green glow + ring + LÅS) means "hold now".
+  const coldNoise = waiting ? 0.12 : complete ? 0.03 : 0.6;
+  drawNoise(ctx, g.band, s.nowMs, coldNoise, pal);
 
-  // 2) A soft clear "sweet spot" at the needle (thins grain where you're tuned).
-  if (!waiting && !complete && felt > 0.05) {
-    const halfW = g.band.h * (0.35 + felt * 0.75);
-    const grad = ctx.createLinearGradient(needleX - halfW, 0, needleX + halfW, 0);
-    grad.addColorStop(0, withAlpha(pal.faceGlassBottom, 0));
-    grad.addColorStop(0.5, withAlpha(pal.faceGlassBottom, 0.72 * felt));
-    grad.addColorStop(1, withAlpha(pal.faceGlassBottom, 0));
-    ctx.fillStyle = grad;
-    ctx.fillRect(g.band.x, g.band.y - g.band.h * 0.06, g.band.w, g.band.h * 1.12);
+  if (!waiting && !complete) {
+    const clearStrength = s.lockable ? 1 : Math.min(s.warmth, 0.5);
+    if (clearStrength > 0.04) {
+      const halfW = g.band.h * (0.4 + (s.lockable ? 1 : s.warmth) * 0.9);
+      const grad = ctx.createLinearGradient(needleX - halfW, 0, needleX + halfW, 0);
+      grad.addColorStop(0, withAlpha(pal.faceGlassBottom, 0));
+      grad.addColorStop(0.5, withAlpha(pal.faceGlassBottom, clearStrength));
+      grad.addColorStop(1, withAlpha(pal.faceGlassBottom, 0));
+      ctx.fillStyle = grad;
+      ctx.fillRect(g.band.x, g.band.y - g.band.h * 0.06, g.band.w, g.band.h * 1.12);
+    }
   }
 
-  // 3) Found-station markers (tuning only; the card owns the complete state).
+  // 2) Found-station markers (tuning only; the card owns the complete state).
   if (!complete) {
     for (const st of s.stations) if (st.found) drawFoundMarker(ctx, g, st, pal);
   }
 
-  // 4) Warmth glow — a restrained bloom around the needle.
-  if (!waiting && felt > 0.03) {
-    const col = complete ? pal.warmMid : warmthColor(pal, felt);
+  // 3) Glow around the needle — warm amber while hunting, bright GREEN and
+  //    pulsing when you're on a capturable signal.
+  if (!waiting && (felt > 0.03 || onStation)) {
+    const pulse = onStation ? 0.82 + 0.18 * Math.sin(s.nowMs / 130) : 1;
+    const col = complete ? pal.warmMid : onStation ? pal.good : warmthColor(pal, s.warmth);
     const cx = complete ? g.band.x + g.band.w * 0.5 : needleX;
-    const radius = complete ? g.band.w * 0.42 : g.band.h * (0.32 + felt * 0.55);
-    const alpha = complete ? 0.26 : (pal.mode === "light" ? 0.4 : 0.34) * felt;
+    const radius = complete ? g.band.w * 0.42 : g.band.h * (onStation ? 0.95 : 0.32 + s.warmth * 0.5);
+    const baseAlpha = complete ? 0.26 : onStation ? 0.5 : (pal.mode === "light" ? 0.36 : 0.3) * felt;
     const grad = ctx.createRadialGradient(cx, bandMid, 0, cx, bandMid, radius);
-    grad.addColorStop(0, withAlpha(col, alpha));
+    grad.addColorStop(0, withAlpha(col, baseAlpha * pulse));
     grad.addColorStop(1, withAlpha(col, 0));
     ctx.save();
-    // Additive reads well on a dark dial; on a light dial a normal blend keeps
-    // the amber warm instead of blowing out to white.
     if (pal.mode === "dark") ctx.globalCompositeOperation = "lighter";
     ctx.fillStyle = grad;
     ctx.fillRect(g.glass.x, g.glass.y, g.glass.w, g.glass.h);
     ctx.restore();
   }
 
-  // 5) Signal-strength meter (hidden while waiting, so the "no device" prompt
-  //    has clean space and nothing overlaps).
-  if (!waiting) drawMeter(ctx, g.meter, felt, pal);
+  // 4) Signal meter — tops out and turns green only when capturable.
+  if (!waiting) drawMeter(ctx, g.meter, felt, s.lockable, pal);
 
-  // 6) Needle + lock ring (tuning only).
+  // 5) Needle, direction hint, capture ring.
   if (!waiting && !complete) {
+    if (s.directionHint !== 0) {
+      drawDirectionArrow(
+        ctx,
+        needleX,
+        g.band.y - g.band.h * 0.16,
+        s.directionHint,
+        g.band.h * 0.28,
+        warmthColor(pal, s.warmth),
+        s.nowMs,
+      );
+    }
     drawNeedle(ctx, g, needleX, pal);
-    if (s.lockingStationId && s.lockProgress > 0.01) {
-      drawLockRing(ctx, needleX, g.band.y + g.band.h * 0.16, g.band.h * 0.19, s.lockProgress, pal);
+    if (onStation || (s.lockingStationId && s.lockProgress > 0.01)) {
+      drawLockRing(ctx, needleX, g.band.y + g.band.h * 0.16, g.band.h * 0.2, s.lockProgress, onStation, pal);
     }
     for (const st of s.stations) {
       if (st.found && st.foundAtMs != null) {
@@ -254,7 +271,13 @@ function drawNeedle(ctx: CanvasRenderingContext2D, g: Geom, x: number, pal: Pale
   ctx.restore();
 }
 
-function drawMeter(ctx: CanvasRenderingContext2D, m: Rect, level: number, pal: Palette): void {
+function drawMeter(
+  ctx: CanvasRenderingContext2D,
+  m: Rect,
+  level: number,
+  lockable: boolean,
+  pal: Palette,
+): void {
   const segments = 14;
   const gap = m.w * 0.008;
   const segW = (m.w - gap * (segments - 1)) / segments;
@@ -262,15 +285,46 @@ function drawMeter(ctx: CanvasRenderingContext2D, m: Rect, level: number, pal: P
   for (let i = 0; i < segments; i++) {
     const x = m.x + i * (segW + gap);
     const frac = i / (segments - 1);
-    ctx.fillStyle = i < lit ? warmthColor(pal, frac) : pal.meterTrack;
+    // When capturable the whole lit bar turns green — an unmistakable "now".
+    ctx.fillStyle = i < lit ? (lockable ? pal.good : warmthColor(pal, frac)) : pal.meterTrack;
     roundRect(ctx, x, m.y, segW, m.h, m.h * 0.2);
     ctx.fill();
   }
-  ctx.fillStyle = pal.textMuted;
-  ctx.font = `700 ${Math.round(m.h * 0.6)}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillStyle = lockable ? pal.good : pal.textMuted;
+  ctx.font = `800 ${Math.round(m.h * 0.62)}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  ctx.fillText("SIGNAL", m.x, m.y - m.h * 0.35);
+  ctx.fillText(lockable ? "LÅS! HOLD" : "SIGNAL", m.x, m.y - m.h * 0.35);
+}
+
+// A pulsing chevron above the needle pointing the way to the nearest signal.
+function drawDirectionArrow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  dir: number,
+  size: number,
+  color: string,
+  nowMs: number,
+): void {
+  const t = 0.5 + 0.5 * Math.sin(nowMs / 200);
+  const ax = x + dir * (size * 0.9 + t * size * 0.5);
+  ctx.save();
+  ctx.globalAlpha = 0.55 + 0.45 * t;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (dir < 0) {
+    ctx.moveTo(ax, y);
+    ctx.lineTo(ax + size * 0.7, y - size * 0.5);
+    ctx.lineTo(ax + size * 0.7, y + size * 0.5);
+  } else {
+    ctx.moveTo(ax, y);
+    ctx.lineTo(ax - size * 0.7, y - size * 0.5);
+    ctx.lineTo(ax - size * 0.7, y + size * 0.5);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawFoundMarker(ctx: CanvasRenderingContext2D, g: Geom, st: StationDef, pal: Palette): void {
@@ -299,18 +353,21 @@ function drawLockRing(
   y: number,
   r: number,
   progress: number,
+  onStation: boolean,
   pal: Palette,
 ): void {
   ctx.save();
+  // Steady track ring — a clear bright-green "hold here" halo when on-station.
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(pal.textMuted, 0.35);
+  ctx.strokeStyle = onStation ? withAlpha(pal.good, 0.6) : withAlpha(pal.textMuted, 0.35);
   ctx.lineWidth = r * 0.26;
   ctx.stroke();
 
+  // Progress arc fills in green as the child holds.
   ctx.beginPath();
   ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
-  ctx.strokeStyle = pal.warmLock;
+  ctx.strokeStyle = pal.good;
   ctx.lineWidth = r * 0.26;
   ctx.lineCap = "round";
   ctx.stroke();

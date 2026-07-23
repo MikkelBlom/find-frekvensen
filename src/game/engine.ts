@@ -10,7 +10,7 @@
 // per-frame values (needle, warmth, noise) live here and are drawn straight to
 // canvas; only stable, low-rate state is mirrored into the store.
 
-import { createLayout, hopStations, stationCountFor } from "./gameFactory";
+import { createLayout, stepStationMovement, stationCountFor } from "./gameFactory";
 import { store } from "./store";
 import { tokens } from "./tokens";
 import { getPalette, accentFor } from "./palette";
@@ -46,11 +46,12 @@ interface PanelRuntime {
   needlePos: number;
   warmth: number;
   displayWarmth: number;
+  lockable: boolean;
+  directionHint: number;
   lockProgress: number;
   lockingStationId: string | null;
 
   completeAtMs: number | null;
-  lastHopMs: number;
 
   confetti: Confetti;
 
@@ -257,10 +258,11 @@ export class GameEngine {
       needlePos: 500,
       warmth: 0,
       displayWarmth: 0,
+      lockable: false,
+      directionHint: 0,
       lockProgress: 0,
       lockingStationId: null,
       completeAtMs: null,
-      lastHopMs: 0,
       confetti: new Confetti(),
       canvas: null,
       cssW: 0,
@@ -302,25 +304,27 @@ export class GameEngine {
       if (!free) break; // more devices than fields — extras wait
       free.serial = serial;
       free.levelIndex = 0; // a new child starts at the first level
+      free.needlePos = d.pos; // set BEFORE startGame so the layout avoids it
       assigned.add(serial);
       this.startGame(free);
-      free.needlePos = d.pos;
     }
   }
 
   /** (Re)initialise a field's game at its current level. */
   private startGame(p: PanelRuntime): void {
     const preset = this.levelFor(p);
-    const layout = createLayout(preset);
+    // Avoid placing a station where the needle already is (no free letters).
+    const layout = createLayout(preset, p.needlePos);
     p.stations = layout.stations;
     p.decoys = layout.decoys;
     p.phase = "tuning";
     p.warmth = 0;
     p.displayWarmth = 0;
+    p.lockable = false;
+    p.directionHint = 0;
     p.lockProgress = 0;
     p.lockingStationId = null;
     p.completeAtMs = null;
-    p.lastHopMs = performance.now();
   }
 
   private updatePanel(
@@ -335,6 +339,8 @@ export class GameEngine {
       p.needlePos += (500 - p.needlePos) * (1 - Math.exp(-dt / 400));
       p.warmth = 0;
       p.displayWarmth = 0;
+      p.lockable = false;
+      p.directionHint = 0;
       p.confetti.update(dt, p.cssH);
       return;
     }
@@ -359,40 +365,42 @@ export class GameEngine {
     }
 
     // ---- tuning ----
-    // Frequency hopping (red difficulty).
-    if (preset.hop && now - p.lastHopMs > preset.hopIntervalMs) {
-      hopStations(preset, p.stations);
-      p.lastHopMs = now;
-      // A hop can move the target out from under the needle — drop any lock.
-      p.lockProgress = 0;
-      p.lockingStationId = null;
-    }
+    // Moving signal (red): slide unfound stations back and forth.
+    if (preset.move) stepStationMovement(preset, p.stations, dt);
 
-    // Warmth (real) toward nearest unfound station; displayWarmth adds decoys.
+    // Nearest unfound station → warmth + direction. Decoys raise the "warmth"
+    // guide but are never capturable, so they never make the dial go sharp.
     const unfound = p.stations.filter((s) => !s.found);
-    let realWarmth = 0;
     let nearest: StationDef | null = null;
     let nearestDist = Infinity;
     for (const s of unfound) {
       const d = Math.abs(p.needlePos - s.position);
-      const w = clamp(1 - d / preset.warmRange, 0, 1);
-      if (w > realWarmth) realWarmth = w;
       if (d < nearestDist) {
         nearestDist = d;
         nearest = s;
       }
     }
-    let displayWarmth = realWarmth;
+    const stationWarmth = nearest ? clamp(1 - nearestDist / preset.warmRange, 0, 1) : 0;
+    let warmth = stationWarmth;
     for (const dc of p.decoys) {
       const d = Math.abs(p.needlePos - dc.position);
-      const w = clamp(1 - d / preset.warmRange, 0, 1);
-      if (w > displayWarmth) displayWarmth = w;
+      warmth = Math.max(warmth, clamp(1 - d / preset.warmRange, 0, 1));
     }
-    p.warmth = realWarmth;
-    p.displayWarmth = displayWarmth;
+    const lockable = !!nearest && nearestDist <= nearest.width / 2;
+
+    p.warmth = warmth;
+    // The bar only reads "full" (and the dial only goes fully sharp) when you can
+    // actually capture; otherwise it caps below full so a warm-but-uncapturable
+    // spot never looks done. This is the fix for "full bar but no point".
+    p.displayWarmth = lockable ? 1 : Math.min(warmth, 0.72);
+    p.lockable = lockable;
+    // A directional nudge once you're warm but not yet on it (helps you chase a
+    // moving signal and tells you which way to go).
+    p.directionHint =
+      nearest && !lockable && stationWarmth > 0.45 ? Math.sign(nearest.position - p.needlePos) : 0;
 
     // Lock: needle held inside a real station's window for lockMs continuous.
-    if (nearest && Math.abs(p.needlePos - nearest.position) <= nearest.width / 2) {
+    if (lockable && nearest) {
       if (p.lockingStationId === nearest.id) {
         p.lockProgress += dt / preset.lockMs;
       } else {
@@ -454,6 +462,8 @@ export class GameEngine {
       needlePos: p.needlePos,
       warmth: p.warmth,
       displayWarmth: p.displayWarmth,
+      lockable: p.lockable,
+      directionHint: p.directionHint,
       lockProgress: p.lockProgress,
       lockingStationId: p.lockingStationId,
       stations: p.stations,
@@ -510,6 +520,8 @@ export class GameEngine {
         needlePos: p.needlePos,
         warmth: p.warmth,
         displayWarmth: p.displayWarmth,
+        lockable: p.lockable,
+        directionHint: p.directionHint,
         lockProgress: p.lockProgress,
         lockingStationId: p.lockingStationId,
         foundCount: p.stations.filter((s) => s.found).length,

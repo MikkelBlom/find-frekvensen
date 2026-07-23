@@ -201,13 +201,13 @@ function DebugPanelBody() {
         <label className="flex items-center" style={{ gap: 8, margin: "6px 0", color: palette.title }}>
           <input
             type="checkbox"
-            checked={editLevel.hop}
+            checked={editLevel.move}
             onChange={(e) => {
-              patch({ hop: e.target.checked });
+              patch({ move: e.target.checked });
               regen();
             }}
           />
-          Frekvens-hop (Hedy)
+          Bevægende signal (Hedy) — glider frem og tilbage
         </label>
 
         <details style={{ margin: "6px 0" }}>
@@ -215,8 +215,9 @@ function DebugPanelBody() {
           <NumberRow palette={palette} label="Vindue (bredde)" value={editLevel.width} min={20} max={160} onChange={(v) => { patch({ width: v }); regen(); }} />
           <NumberRow palette={palette} label="Varme-rækkevidde" value={editLevel.warmRange} min={60} max={300} onChange={(v) => { patch({ warmRange: v }); regen(); }} />
           <NumberRow palette={palette} label="Lås-tid (ms)" value={editLevel.lockMs} min={300} max={1500} step={50} onChange={(v) => patch({ lockMs: v })} />
+          <NumberRow palette={palette} label="Signal-fart" value={editLevel.moveSpeed} min={0} max={200} step={5} onChange={(v) => patch({ moveSpeed: v })} />
+          <NumberRow palette={palette} label="Signal-vandring" value={editLevel.moveRange} min={40} max={400} step={10} onChange={(v) => patch({ moveRange: v })} />
           <NumberRow palette={palette} label="Narre-toppe" value={editLevel.decoys} min={0} max={5} onChange={(v) => { patch({ decoys: v }); regen(); }} />
-          <NumberRow palette={palette} label="Hop-interval (ms)" value={editLevel.hopIntervalMs} min={1500} max={8000} step={100} onChange={(v) => patch({ hopIntervalMs: v })} />
         </details>
 
         <Label palette={palette}>Sæt alle felter til niveau</Label>

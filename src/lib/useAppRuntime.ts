@@ -12,6 +12,8 @@ import type { DifficultyPreset, GameConfig } from "@/game/types";
 
 const NUDGE_STEP = 25;
 const CONFIG_KEY = "frekvens-config";
+// Bump when the level/preset schema changes so saved levels reset to new defaults.
+const CONFIG_VERSION = 2;
 
 function applyTheme(mode: ThemeMode) {
   if (typeof document === "undefined") return;
@@ -46,7 +48,13 @@ export function useAppRuntime() {
     // ---- settings: restore from localStorage, then persist on change ----
     try {
       const raw = localStorage.getItem(CONFIG_KEY);
-      if (raw) store.get().hydrateConfig(JSON.parse(raw) as Partial<GameConfig>);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<GameConfig> & { _v?: number };
+        // On a level-schema change, keep the operator's prefs (fields, theme,
+        // sound) but reset the difficulty levels to the new defaults.
+        const restore = saved._v === CONFIG_VERSION ? saved : { ...saved, levels: undefined };
+        store.get().hydrateConfig(restore);
+      }
     } catch {
       /* ignore corrupt/unavailable storage */
     }
@@ -57,7 +65,7 @@ export function useAppRuntime() {
       if (state.config === prev.config) return;
       applyTheme(state.config.themeMode);
       try {
-        localStorage.setItem(CONFIG_KEY, JSON.stringify(state.config));
+        localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...state.config, _v: CONFIG_VERSION }));
       } catch {
         /* ignore */
       }
