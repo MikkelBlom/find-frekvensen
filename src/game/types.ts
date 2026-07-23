@@ -89,6 +89,11 @@ export interface DifficultyPreset {
   moveSpeed: number;
   /** How far a station wanders either side of its home position. */
   moveRange: number;
+  /**
+   * Warmth above which the directional arrow appears (0 = always when warm,
+   * ≥1 = never). Higher = "less of a hint" (red only nudges when very close).
+   */
+  hintFrom: number;
   messageMode: MessageMode;
   /** Word to spell out (word mode); one letter per station. */
   message: string;

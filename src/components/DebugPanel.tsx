@@ -215,8 +215,9 @@ function DebugPanelBody() {
           <NumberRow palette={palette} label="Vindue (bredde)" value={editLevel.width} min={20} max={160} onChange={(v) => { patch({ width: v }); regen(); }} />
           <NumberRow palette={palette} label="Varme-rækkevidde" value={editLevel.warmRange} min={60} max={300} onChange={(v) => { patch({ warmRange: v }); regen(); }} />
           <NumberRow palette={palette} label="Lås-tid (ms)" value={editLevel.lockMs} min={300} max={1500} step={50} onChange={(v) => patch({ lockMs: v })} />
-          <NumberRow palette={palette} label="Signal-fart" value={editLevel.moveSpeed} min={0} max={200} step={5} onChange={(v) => patch({ moveSpeed: v })} />
+          <NumberRow palette={palette} label="Signal-fart" value={editLevel.moveSpeed} min={0} max={250} step={5} onChange={(v) => patch({ moveSpeed: v })} />
           <NumberRow palette={palette} label="Signal-vandring" value={editLevel.moveRange} min={40} max={400} step={10} onChange={(v) => patch({ moveRange: v })} />
+          <NumberRow palette={palette} label="Retningspil (0=altid, 1=aldrig)" value={editLevel.hintFrom} min={0} max={1} step={0.05} onChange={(v) => patch({ hintFrom: v })} />
           <NumberRow palette={palette} label="Narre-toppe" value={editLevel.decoys} min={0} max={5} onChange={(v) => { patch({ decoys: v }); regen(); }} />
         </details>
 

@@ -13,7 +13,7 @@ import type { DifficultyPreset, GameConfig } from "@/game/types";
 const NUDGE_STEP = 25;
 const CONFIG_KEY = "frekvens-config";
 // Bump when the level/preset schema changes so saved levels reset to new defaults.
-const CONFIG_VERSION = 2;
+const CONFIG_VERSION = 3;
 
 function applyTheme(mode: ThemeMode) {
   if (typeof document === "undefined") return;

@@ -395,9 +395,12 @@ export class GameEngine {
     p.displayWarmth = lockable ? 1 : Math.min(warmth, 0.72);
     p.lockable = lockable;
     // A directional nudge once you're warm but not yet on it (helps you chase a
-    // moving signal and tells you which way to go).
+    // moving signal). The threshold is per-level: full on green/yellow, only a
+    // faint late nudge on red (preset.hintFrom).
     p.directionHint =
-      nearest && !lockable && stationWarmth > 0.45 ? Math.sign(nearest.position - p.needlePos) : 0;
+      nearest && !lockable && stationWarmth > preset.hintFrom
+        ? Math.sign(nearest.position - p.needlePos)
+        : 0;
 
     // Lock: needle held inside a real station's window for lockMs continuous.
     if (lockable && nearest) {

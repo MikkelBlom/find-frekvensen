@@ -14,6 +14,7 @@ import type { DifficultyPreset, GameConfig } from "./types";
 import { DEFAULT_THEME_ID } from "./themes";
 
 export const PRESETS: Record<string, DifficultyPreset> = {
+  // Stationary, 3 letters (Ada Lovelace). Easy first success.
   green: {
     id: "green",
     label: "Grøn",
@@ -27,42 +28,50 @@ export const PRESETS: Record<string, DifficultyPreset> = {
     move: false,
     moveSpeed: 0,
     moveRange: 0,
+    hintFrom: 0.45, // arrow helps you find the (stationary) signal
     messageMode: "word",
     message: "ADA",
     pictureId: "radio",
   },
+  // Moving, 4 letters (Hedy Lamarr), WITH the directional arrow. The window is
+  // narrow and the signal fast enough that a still needle can't catch it — you
+  // have to follow it (dwell 58/110 ≈ 0.53s < lockMs 0.65s).
   yellow: {
     id: "yellow",
     label: "Gul",
     stationCount: 4,
     width: 58,
-    widthJitter: 0.18,
+    widthJitter: 0.16,
     spread: 0.85,
     decoys: 0,
-    warmRange: 150,
-    lockMs: 700,
-    move: false,
-    moveSpeed: 0,
-    moveRange: 0,
+    warmRange: 175,
+    lockMs: 650,
+    move: true,
+    moveSpeed: 110,
+    moveRange: 200,
+    hintFrom: 0.45, // full directional hint
     messageMode: "word",
     message: "HEDY",
     pictureId: "satellite",
   },
+  // Moving, 5 letters (Grace Hopper), only a faint hint when very close.
+  // Faster, narrower, wanders further (dwell 50/135 ≈ 0.37s < lockMs 0.62s).
   red: {
     id: "red",
     label: "Rød",
-    stationCount: 4,
-    width: 64,
-    widthJitter: 0.15,
-    spread: 0.9,
+    stationCount: 5,
+    width: 50,
+    widthJitter: 0.14,
+    spread: 0.92,
     decoys: 0,
-    warmRange: 150,
-    lockMs: 700,
-    move: true, // the signal slides back and forth — you must follow it
-    moveSpeed: 70,
-    moveRange: 220,
+    warmRange: 155,
+    lockMs: 620,
+    move: true,
+    moveSpeed: 135,
+    moveRange: 260,
+    hintFrom: 0.8, // only nudges direction when you're nearly on it
     messageMode: "word",
-    message: "HEDY",
+    message: "GRACE",
     pictureId: "rocket",
   },
 };
