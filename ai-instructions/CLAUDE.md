@@ -26,8 +26,9 @@ Receiver micro:bit ×N --radio--> Base-station micro:bit --USB/serial--> Next.js
    interchangeable. Never add game logic that only works with real serial.
 3. **Offline on the day.** No internet at the venue. No runtime network calls,
    no `next/font/google`, no CDNs. Everything is self-contained (inline SVG,
-   WebAudio synth, system fonts). `npm run build && npm run start` must work
-   offline.
+   WebAudio synth, system fonts). `npm run build && npm run serve` must work
+   offline — and so must the packaged `npm run exe`, which is what actually
+   ships to the venue.
 4. **Sound is a pure plus.** The game must be fully playable and legible with
    sound off. Never gate progress, feedback, or clarity on audio.
 5. **The debug panel must hide completely** (press `d`) so children never see

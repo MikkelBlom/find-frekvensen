@@ -44,8 +44,22 @@
   (`~0.5×band.h` flash, tight halo) or they fill the whole glass. A big radial
   clear-window around the needle also created an ugly "porthole ring" — removed
   in favour of global noise reduction + a soft vertical clear column.
-- **micro:bit radio strings max 19 bytes.** `<serial>|<pos>|<flags>` fits (≤18).
-  If the serial format ever grows, shorten it.
+- **micro:bit radio strings max 19 bytes.** `<id>|<pos>|<flags>|<checksum>` fits.
+  If the serial format ever grows, shorten it — this is why `id` is the hardware
+  serial reduced to `abs % 1_000_000`.
+- **Only one program may touch the base station's serial port.** Leaving the
+  MakeCode editor connected while the app reads the same port splits the byte
+  stream and shreds both — this produced dozens of phantom players and looked
+  exactly like hardware failure. Flash → close MakeCode → then connect the app.
+  (The earlier theory that a V1 drops bytes at 115200 was wrong; a lone V1 is
+  fine. Don't drop the baud — at 9600 the link can't carry 8–10 handhelds.)
+- **Both `checksum()` implementations must stay byte-identical** —
+  `firmware/receiver.js` and `src/serial/protocol.ts`. Change one, change both,
+  and re-flash every handheld.
+- **A moving signal must out-run a still needle.** Dwell time (window width ÷
+  speed) is deliberately shorter than `lockMs` on yellow (0.53 s vs 0.65 s) and
+  red (0.37 s vs 0.62 s), so you can only capture it by following it. Re-check
+  this ratio whenever you retune speed or width.
 
 ## UI self-review checklist (spec §7.1)
 
@@ -68,8 +82,18 @@ Run `npm run shots`, then check each PNG:
 - Tilt vs buttons: tilt is plan A; A/B also nudge (firmware). Re-tune `SPEED`/
   `DEAD_ZONE` in `firmware/receiver.js` on the day if tilt feels hard.
 
-## Not yet verified on real hardware
+## Hardware status
 
-The full micro:bit → base-station → app chain hasn't been run with physical
-devices (none available in this session). Firmware is written to spec; verify
-radio range, tilt feel, and 8-device packet load on the day and tune constants.
+**Verified.** The full micro:bit → base-station → app chain runs clean: one
+handheld at ~9 packets/s with errors only at connect (2026-07-23), and two
+handhelds simultaneously driving two separate fields with no id collisions
+(2026-07-28).
+
+**Still unverified:** radio range across a room the size of the venue, tilt feel
+with actual children, and packet load with 8–10 handhelds at once. Tune `SPEED`,
+`DEAD_ZONE` and `TICK_MS` at the top of `firmware/receiver.js` when you find out
+(with 8–10 units at `TICK_MS = 100` that's ~100 packets/s and some will collide;
+raise to 130–150 if needles feel laggy).
+
+**Before the day:** re-flash all ~10 handhelds and the base station one final
+time, so every unit is on the same build as the .exe you bring.

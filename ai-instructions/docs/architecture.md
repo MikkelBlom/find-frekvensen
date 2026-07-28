@@ -7,7 +7,7 @@ flowchart LR
   subgraph Hardware
     R1[Receiver micro:bit ×N<br/>tilt → pos] -- radio group 7 --> BS[Base-station<br/>micro:bit]
   end
-  BS -- USB serial 115200<br/>R,serial|pos|flags --> SM[SerialManager]
+  BS -- USB serial 115200<br/>R,id|pos|flags|checksum --> SM[SerialManager]
   SIM[Simulator<br/>sweep/solve/manual/idle] --> DEV
   SM --> DEV[(devices map<br/>in Zustand store)]
   DEV --> ENG[GameEngine loop]
@@ -26,7 +26,8 @@ engine only reads that map. So the game is identical with or without hardware.
 | Path | Responsibility |
 |------|----------------|
 | `src/game/types.ts` | All domain types. |
-| `src/game/tokens.ts` | Single source of colours + sizes (canvas + DOM). |
+| `src/game/tokens.ts` | Single source of sizes + shared design values (canvas + DOM). |
+| `src/game/palette.ts` | Light + dark palettes; light is the default. |
 | `src/game/themes.ts` | Field identities (icon/name/accent) per theme. |
 | `src/game/pictures.ts` | Inline-SVG scenes for picture mode. |
 | `src/game/presets.ts` | Difficulty presets + default config. |
@@ -37,13 +38,14 @@ engine only reads that map. So the game is identical with or without hardware.
 | `src/render/noise.ts` | Pre-baked snow tiles. |
 | `src/render/confetti.ts` | Completion particles. |
 | `src/sim/simulator.ts` | Virtual devices → device map. |
-| `src/serial/protocol.ts` | Parse `R,serial|pos|flags`. |
+| `src/serial/protocol.ts` | Parse + checksum-verify `R,id\|pos\|flags\|checksum`. |
 | `src/serial/webserial.ts` | Web Serial connect/read/reconnect. |
 | `src/audio/sound.ts` | Optional WebAudio SFX. |
 | `src/components/*` | TopBar, FieldGrid, RadioField, MessageTray, PictureReveal, DebugPanel. |
 | `src/lib/useAppRuntime.ts` | Boots engine/sim/serial/audio, keyboard, URL params, test API. |
 | `src/app/*` | Layout + page shell. |
 | `firmware/*` | MakeCode receiver + base-station. |
+| `electron/main.js` | Portable .exe shell: serves `out/` on loopback, fullscreen, auto-picks the micro:bit port. |
 | `scripts/shots.mjs` | Playwright screenshot self-test. |
 
 ## Field lifecycle

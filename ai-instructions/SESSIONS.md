@@ -207,3 +207,76 @@ failure was diagnosable (clean drops + flicker, not phantoms). Docs corrected
 day: flash bits → close MakeCode → only the game app touches the base-station
 port. Saved memories: `serial-port-contention-gotcha`, `microbit-hardware-labels`
 (red=base, green=transmitter, yellow=spare). Not yet tested with 2+ handhelds.
+
+---
+
+## 2026-07-23 — Claude Code — Gameplay rework (logged retroactively)
+
+**Summary:** Reconstructed on 2026-07-28 from commits `21e8543`, `43b906c`,
+`c3a5cef`, `f99b661`, which shipped without a session entry.
+
+- **Settings persist** across a refresh (localStorage), versioned so a bump
+  resets difficulty levels to new defaults while keeping fields/theme/sound.
+- **Arrow-key needle control fixed**; on-screen vip test added; the dial centre
+  is kept clear.
+- **Honest capture feedback.** The bar and de-noise used to ramp over a much
+  wider range than the lock window, so a field looked "done" while the needle
+  was still far out — and decoys made it worse. Now the bar only tops out, the
+  dial only goes fully sharp/green, and the "LÅS! HOLD" ring only appears when
+  the needle is genuinely inside a station window. Warm-but-not-capturable stays
+  visibly fuzzy with a capped bar. Decoys default to 0.
+- **Directional hint.** A green arrow above the needle points toward the nearest
+  signal, so a symmetric bar no longer leaves you guessing which way to go.
+  Threshold is per level (`hintFrom`).
+- **Moving signal replaces teleport hopping** (`move`/`moveSpeed`/`moveRange`).
+  The station slides around its home instead of jumping — you follow it. This is
+  the Hedy Lamarr idea, made catchable.
+- **No free letters:** station placement excludes a dead zone around the
+  needle's *actual* position at (re)start, not just the centre.
+- **Ladder retuned** to green 3 letters (ADA, stationary) / yellow 4 (HEDY,
+  moving 110 u/s) / red 5 (GRACE, moving 135 u/s, faint late hint). Speeds and
+  window widths chosen so dwell time is shorter than `lockMs` — a still needle
+  can never catch a moving signal.
+
+**Verified in-browser:** capturable → bar 1.0/green/LÅS; 90 u away → bar 0.55 +
+arrow, no lock; needle held at 760 after restart → 0 captured; standing still on
+red for 10 s captured nothing.
+
+---
+
+## 2026-07-28 — Claude Code (Opus 5) — Launchpad sync, GitHub, doc catch-up
+
+**Summary:** Housekeeping session. Got the project tracked properly, backed up
+off this machine, and brought the notes back in line with the code.
+
+- **Launchpad (project #13):** wrote a real description, six tags, 11 open tasks,
+  11 ideas and 8 notes — all grounded in what the repo said was unfinished.
+  Pinned the hard invariants and a day-of runbook. Claimed **port 7430** (3000
+  is permanently taken on this machine) and pointed `npm run dev`, `npm run
+  serve`, `.claude/launch.json`, the screenshot harness and the docs at it;
+  verified the server binds it and the app loads clean.
+- **Git:** committed the checksum-protocol work that had been sitting in the
+  working tree since 2026-07-23, then the Launchpad tracking files, then this
+  doc refresh. Created a **private GitHub repo** and pushed — the project had no
+  remote at all, so eight commits existed on exactly one disk.
+- **Docs:** FEATURES.md had stopped tracking the code four commits back (it
+  still listed frequency *hopping* as the red mechanic and didn't mention the
+  Electron exe or localStorage persistence at all). Added the missing rows plus
+  a hardware-verification table; struck the two FUTURE_IDEAS that have shipped;
+  replaced WORKING_NOTES' "not yet verified on real hardware" with the actual
+  status; added the serial-port-contention gotcha, the checksum-parity rule and
+  the dwell-vs-hold rule to the gotchas list; fixed two stale references
+  (`npm run start`, which doesn't exist, and the old 3-field protocol in the
+  architecture module map).
+- **Rebuilt the .exe** so the artefact matches the current source.
+
+**Hardware update from the operator:** two handhelds have now been tested
+together and work perfectly. A final re-flash of all ~10 units is still planned
+before the day.
+
+**Next steps:**
+- Final re-flash of every handheld + the base station shortly before 12 Oct.
+- Verify radio range, tilt feel and 8–10 unit packet load in a venue-sized room;
+  tune `SPEED`/`DEAD_ZONE`/`TICK_MS` if needed.
+- Still open: visual-regression baselines in `npm run shots`, the slim operator
+  toolbar, and the firmware-filename rename decision.
