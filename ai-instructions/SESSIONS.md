@@ -149,3 +149,61 @@ memory `rebuild-exe-after-changes`.
 **Next steps:**
 - Double-click the exe on a real Windows desktop and confirm it opens fullscreen
   and auto-connects to the base station.
+
+---
+
+## 2026-07-23 — Claude Code (Opus 4.8) — Fix V1 serial corruption (checksum)
+
+**Summary:** Diagnosed and fixed the "one handheld spawns 60 phantom players"
+bug from a real hardware test. Root cause: **micro:bit V1 drops bytes on its USB
+serial at 115200** (confirmed from the raw line log — dropped `|`, digits, and
+`R,` prefixes; ~16–25 `fejl`). Interface firmware was already current (0258) and
+a cable swap did nothing, so it's inherent V1 flakiness, not config.
+
+- **Base station** (`basestation.js`): added `led.enable(false)` (frees the LED
+  refresh interrupt so the UART drops fewer bytes) and dropped the LED
+  heartbeat/toggle + forever loop. Shows a one-time ✓ then goes dark.
+- **Checksum protocol** (the real fix). Handheld now sends
+  `<id>|<pos>|<flags>|<checksum>` where `id = abs(deviceSerialNumber) % 1e6`
+  (shorter → fewer bytes) and `checksum` is a rolling hash (`h=(h*31+c)%10000`)
+  over the payload. `receiver.js` builds it; `src/serial/protocol.ts` `parseLine`
+  now requires exactly 4 all-digit fields and a matching checksum, else returns
+  null. Corruption → dropped packet, not a phantom. The two `checksum()` must
+  stay byte-identical.
+- Verified the algorithm in Node against the exact corruptions from the logs:
+  all 7 hand-picked manglings and **all 17 single-byte deletions rejected, 0
+  false-accepts**.
+- Docs updated: `firmware/README.md` (new format + V1 troubleshooting +
+  re-flash-everything warning), `firmware/basestation.js` header,
+  `docs/architecture.md` serial-protocol section.
+
+**Issues / coordination:**
+- **Protocol changed**, so BOTH ends must be re-flashed: every handheld
+  (`receiver.js`) AND the base station (`basestation.js`). Old 3-field firmware
+  is (correctly) rejected wholesale by the new parser.
+- I edited **`src/serial/protocol.ts`** (normally the web session's lane). The
+  web rebuild must keep this checksum verify in sync with the firmware.
+- App is shipped as a portable Electron exe (`rebuild-exe-after-changes`): after
+  this `protocol.ts` change, **rebuild the exe** (`npm run exe`) or run the dev
+  server, or the running app won't have the checksum gate.
+
+**State:** Firmware + parser written and doc-verified; algorithm unit-checked in
+Node. Not yet re-flashed to hardware / re-tested end to end by the operator.
+
+**Next steps:**
+- Re-flash all handhelds + base station, reconnect, confirm `Enheder` shows one
+  device per micro:bit and `fejl` no longer produces phantoms.
+- If clean-packet throughput is low with 8–10 kids, consider `TICK_MS` 100→120.
+
+**RESOLUTION (same day, on hardware):** the checksum fix works — one bit runs
+clean and smooth (`9/s · fejl: 3`, errors only at connect, no growth, no
+phantoms). And the *real* root cause of the original mangling was found: **two
+apps on the same serial port**. The **MakeCode editor** was connected to the base
+station while the web app read it too; they split the byte stream and both got
+shredded. Closing MakeCode → instantly clean. So "V1 drops bytes at 115200" was a
+wrong theory — a lone V1 at 115200 is fine. The checksum is still the reason the
+failure was diagnosable (clean drops + flicker, not phantoms). Docs corrected
+(README troubleshooting, architecture serial-protocol). Operational rule for the
+day: flash bits → close MakeCode → only the game app touches the base-station
+port. Saved memories: `serial-port-contention-gotcha`, `microbit-hardware-labels`
+(red=base, green=transmitter, yellow=spare). Not yet tested with 2+ handhelds.

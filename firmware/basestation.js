@@ -1,34 +1,48 @@
 // ============================================================================
-// Find Frekvensen — BASE STATION firmware (micro:bit)
+// Find Frekvensen — BASE-STATION firmware  (the ONE micro:bit in the PC)
 //
-// Flash this to the ONE micro:bit that stays plugged into the computer over USB.
-// It listens on the same radio group as the receivers and prints every packet
-// to the USB serial port, one line per packet, for the web app to read via the
-// Web Serial API.
+//   RADIO ROLE:  RECEIVER  — this is the unit you call the "receiver": it
+//                stays plugged into the computer over USB the whole time.
+//   FLASH TO:    exactly ONE micro:bit (the one on the USB cable).
+//   PAIRED WITH: firmware/receiver.js on every handheld the children hold.
 //
-// Output line format:  R,<serial>|<pos>|<flags>\n   at 115200 baud.
+// It listens on the same radio group as the handhelds and prints every packet
+// it hears to the USB serial port, one line per packet, for the web app to read
+// via the Web Serial API. It runs NO game logic — it is a pure radio->USB relay.
 //
-// How to use: makecode.microbit.org → New Project → {} JavaScript → paste →
-// Download. Then in the web app click "Forbind base-station" and pick this
-// micro:bit's serial port.
+// Output line format:  R,<id>|<pos>|<flags>|<checksum>\n     at 115200 baud
+//   id       : the sending handheld's short device id (non-negative)
+//   pos      : 0..1000 needle position
+//   flags    : bitmask  (bit0 = A pressed, bit1 = B pressed)
+//   checksum : integrity hash the app uses to drop V1 serial corruption
+// Example:  R,150349|734|0|6044
+// (This program just forwards whatever it hears verbatim — the handheld builds
+//  the line and the app checks it. Nothing to configure here.)
+//
+// Flash: makecode.microbit.org -> New Project -> the {} JavaScript view ->
+//        paste this whole file -> Download. Then plug this micro:bit into the
+//        PC, open the web app in Chrome/Edge, and click "Forbind base-station".
 // ============================================================================
 
-const RADIO_GROUP = 7; // MUST match the receivers
+const RADIO_GROUP = 7; // MUST match receiver.js on the handhelds
 
 radio.setGroup(RADIO_GROUP);
 serial.setBaudRate(BaudRate.BaudRate115200);
 
-// Forward each received packet to USB serial, prefixed with "R,".
+// One-time "flashed OK" tick, THEN turn the LED display off for good.
+basic.showIcon(IconNames.Yes);
+basic.pause(400);
+
+// IMPORTANT (micro:bit V1): the LED display is redrawn by a constant timer
+// interrupt that steals cycles from the USB serial UART and makes it drop
+// bytes at 115200 — which shows up in the app as garbled serials / phantom
+// players. This base station lives in the PC and needs no display, so we
+// disable the driver entirely to keep the serial output clean.
+led.enable(false);
+
+// Forward each received radio packet to USB serial, prefixed with "R,".
+// Registering this handler keeps the program running; no forever-loop needed.
+// The web app tolerates the "R," prefix and ignores anything malformed.
 radio.onReceivedString(function (received: string) {
   serial.writeLine("R," + received);
-  // Brief "alive" blink so you can see traffic on the base station.
-  led.toggle(2, 2);
-});
-
-// A steady heart in the corner shows the base station is powered and running.
-basic.forever(function () {
-  led.plot(0, 0);
-  basic.pause(500);
-  led.unplot(0, 0);
-  basic.pause(500);
 });

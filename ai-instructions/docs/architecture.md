@@ -54,6 +54,16 @@ engine only reads that map. So the game is identical with or without hardware.
 
 ## Serial protocol
 
-`R,<serial>|<pos>|<flags>\n` at 115200 baud. `serial` = device serial (int,
-may be negative), `pos` = 0–1000, `flags` = bitmask (bit0 A, bit1 B). Malformed
-lines are counted as parse errors in the debug panel, never crash.
+`R,<id>|<pos>|<flags>|<checksum>\n` at 115200 baud. `id` = short device id
+(hardware serial, `abs % 1_000_000`, non-negative), `pos` = 0–1000, `flags` =
+bitmask (bit0 A, bit1 B), `checksum` = rolling hash of `<id>|<pos>|<flags>`
+(0–9999). `parseLine` requires exactly four fields and a matching checksum;
+anything else is counted as a parse error in the debug panel, never crashes.
+
+The checksum is the integrity gate that turns any corruption into a dropped
+packet instead of a phantom "player". The corruption source found on hardware
+(2026-07-23) was **two apps reading the same serial port** — the MakeCode editor
+open alongside the web app split the byte stream and shredded both; closing
+MakeCode fixed it (a lone V1 at 115200 is clean). Radio collisions / bad cables
+are a lesser second source. `checksum()` in `src/serial/protocol.ts` must stay
+byte-identical to the one in `firmware/receiver.js`.
