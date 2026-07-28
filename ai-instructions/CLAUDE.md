@@ -56,3 +56,28 @@ snapshots). Don't push per-frame values through React. Verify visual changes wit
 `WORKING_NOTES.md`. Commit at milestones; never commit secrets or `node_modules`.
 
 See `INDEX.md` for the rest of the notes files.
+
+<!-- launchpad:begin -->
+## Launchpad
+
+This project is tracked in **Launchpad**, a local service on http://localhost:7420 that owns
+Mikkel's notes, ideas, and tasks for every project. **It is Launchpad project #13 ("Ada Lovelace Day Program").**
+Launchpad's database is the source of truth — not the markdown in this repo.
+
+```bash
+launchpad pull --json      # read this project's tasks/ideas/notes (nothing written to disk)
+launchpad guide            # the full command set, with the push-plan schema
+```
+
+Every `launchpad` command run inside this folder targets project #13 automatically.
+Write back with `launchpad task add "…"`, `launchpad idea add "…"`, `launchpad note add "…"`,
+`launchpad set description "…"`, `launchpad tag add <name>`, or a batch `launchpad push plan.json`.
+
+**Dev server port.** This project claims **7430** — `npm run dev` and `npm run serve`
+both listen there, and `npm run shots` defaults to `http://localhost:7430`. Don't move
+it without re-claiming (`launchpad set port <n>`); 3000, 3001 and 5000 are already taken
+on this machine.
+
+`ai-instructions/LAUNCHPAD.md` is a **read-only mirror** — editing it changes nothing.
+Agents archive rather than delete; nothing you do here is unrecoverable.
+<!-- launchpad:end -->

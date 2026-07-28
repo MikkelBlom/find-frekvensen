@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# launchpad local cache (the binding and the mirror are committed)
+ai-instructions/.launchpad-snapshot.json
