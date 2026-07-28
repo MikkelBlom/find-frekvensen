@@ -43,14 +43,14 @@ Requirements: Node 20.9+ and **Chrome or Edge** (Web Serial API).
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000  (development)
+npm run dev      # http://localhost:7430  (development)
 ```
 
 Or serve the built static app in a browser (Chrome/Edge) without the exe:
 
 ```bash
 npm run build    # writes the static site to out/
-npm run serve    # serves out/ at http://localhost:3000
+npm run serve    # serves out/ at http://localhost:7430
 ```
 
 In a browser, click **Forbind base-station** and pick the micro:bit's port; press
@@ -60,8 +60,8 @@ In a browser, click **Forbind base-station** and pick the micro:bit's port; pres
 
 Add `?sim=1` to spin up virtual devices, e.g.:
 
-- `http://localhost:3000/?sim=1&fields=6&mode=solve` — 6 fields that solve themselves
-- `http://localhost:3000/?sim=1&fields=8&mode=sweep&preset=red` — 8 fields, red difficulty
+- `http://localhost:7430/?sim=1&fields=6&mode=solve` — 6 fields that solve themselves
+- `http://localhost:7430/?sim=1&fields=8&mode=sweep&preset=red` — 8 fields, red difficulty
 - URL params: `sim`, `fields` (1–10), `devices`, `mode` (`sweep`/`solve`/`manual`/`idle`), `preset` (`green`/`yellow`/`red`), `theme`, `debug`
 
 ## Controls

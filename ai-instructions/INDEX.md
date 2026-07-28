@@ -15,7 +15,7 @@ for AI assistants, separate from the polished docs and the code itself.
 
 ## Fast orientation
 
-- **Run it:** `npm run dev`, open `http://localhost:3000/?sim=1&fields=6&mode=solve`.
+- **Run it:** `npm run dev`, open `http://localhost:7430/?sim=1&fields=6&mode=solve`.
 - **See every state:** `npm run shots` → look at `/screenshots`.
 - **Change the game:** press `d` for the debug panel, or edit
   `src/game/presets.ts` (difficulty) / `src/game/themes.ts` (field identities) /

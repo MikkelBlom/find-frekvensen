@@ -6,9 +6,9 @@
   "author": "Coding Pirates Odense",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 7430",
     "build": "next build",
-    "serve": "npx --yes serve out -l 3000",
+    "serve": "npx --yes serve out -l 7430",
     "lint": "eslint",
     "shots": "node scripts/shots.mjs",
     "electron": "electron .",

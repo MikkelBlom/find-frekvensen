@@ -1,14 +1,14 @@
 // Screenshot harness (spec §7.1). Drives the app in simulator mode into each
 // key UI state and saves PNGs to /screenshots, at 1080p and (for a subset) 4K.
 //
-// Requires a running server: start `npm run dev` (or `npm run start` after a
+// Requires a running server: start `npm run dev` (or `npm run serve` after a
 // build) first, or set BASE_URL. Then: `npm run shots`.
 
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const BASE = process.env.BASE_URL || "http://localhost:3000";
+const BASE = process.env.BASE_URL || "http://localhost:7430";
 const OUT = path.resolve("screenshots");
 
 const VIEWPORTS = {
