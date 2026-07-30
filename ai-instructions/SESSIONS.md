@@ -280,3 +280,45 @@ before the day.
   tune `SPEED`/`DEAD_ZONE`/`TICK_MS` if needed.
 - Still open: visual-regression baselines in `npm run shots`, the slim operator
   toolbar, and the firmware-filename rename decision.
+
+---
+
+## 2026-07-30 — Claude Code (Opus 5) — Launchpad data recovery
+
+**Summary:** Re-established Launchpad tracking after the project's id moved and
+its data didn't come with it. No app code touched.
+
+- **The project is now #35, not #13.** Id 13 belongs to "Program Management
+  System" today. Project #35 held nothing but a truncated auto-generated
+  description — all 6 open tasks, 11 ideas and 8 notes pushed on 2026-07-28 were
+  gone, and `launchpad log` showed no history to explain it. A cross-project
+  `launchpad search` found none of the items anywhere, so they weren't merged
+  into another project.
+- **Recovered from `.launchpad-snapshot.json`** — which is *gitignored*, so it
+  existed on this disk only and the recovery was luck. (The durable copy is
+  `LAUNCHPAD.md`: tracked, and on GitHub. Keep committing it.) Re-pushed the
+  full description, six tags, the tasks,
+  ideas and notes; verified each one still matches the code before pushing
+  (the difficulty-ladder note against `src/game/presets.ts`, the GitHub-remote
+  note against `git remote -v`, the port against `package.json`/`launch.json`).
+- **Tag naming** aligned to Launchpad's existing global registry — `ui` instead
+  of a near-duplicate `ux`, `ops`+`electron` instead of a single-use `build`.
+- **Two new items** grounded in what the repo actually says: a task for the stale
+  red-level descriptions (below), and a note recording the #13 → #35 move so the
+  next session doesn't read the old id in these notes and get lost.
+- Port **7430** re-claimed explicitly for #35 (it was only being inferred from
+  `.claude/launch.json`), and the stale "no port claimed yet" line in this
+  folder's `CLAUDE.md` Launchpad block replaced with the actual port.
+
+**Found but not fixed** (captured as a Launchpad task instead): three places
+still describe the pre-2026-07-23 game — teleport hopping, yellow with 2 decoys,
+red spelling HEDY. They are `README.md` (intro + the whole Difficulty section +
+"red/hop" in the self-test paragraph), `ai-instructions/CLAUDE.md` ("What is
+this?"), and the header comment of `src/game/presets.ts`, whose own preset
+objects directly below it are correct. The last two matter most — they're what an
+agent reads as ground truth.
+
+**Next steps:**
+- Fix those three stale descriptions.
+- Unchanged from before: final re-flash, the venue-room range/load test, the
+  .exe launch test, visual-regression baselines, the firmware rename decision.
