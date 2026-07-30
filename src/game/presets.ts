@@ -1,14 +1,21 @@
 // Difficulty presets and the default game config.
 //
-// Green  – few wide stations, clustered, no decoys. Easy first success.
-// Yellow – more, narrower stations spread out, a couple of decoy peaks.
-// Red    – narrow stations plus frequency HOPPING (Hedy Lamarr's idea): the
-//          final signal keeps jumping, so you must re-catch it.
+// Green  – 3 wide stations, clustered, stationary. Easy first success.
+// Yellow – 4 narrower stations spread out, and the signal MOVES: it slides back
+//          and forth around its home position, so you have to follow it.
+// Red    – 5 narrower stations still, moving faster and wandering further, with
+//          the directional hint held back until you are nearly on top of one.
+//
+// The movement is Hedy Lamarr's frequency-hopping idea made catchable — the
+// signal slides rather than teleporting (it used to jump, which was replaced on
+// 2026-07-23). Speeds and window widths are deliberately set so dwell time
+// (width / moveSpeed) is SHORTER than lockMs: a still needle can never catch a
+// moving signal. Re-check that ratio whenever you retune either number.
 //
 // Each field climbs this ladder INDEPENDENTLY (green → yellow → red): complete
 // one level and that field advances to the next. Word-mode messages tie into
-// Ada Lovelace Day: green spells ADA, yellow/red spell HEDY. Level colours come
-// from the active palette (see levelColor()).
+// Ada Lovelace Day: green spells ADA, yellow HEDY, red GRACE. Level colours
+// come from the active palette (see levelColor()).
 
 import type { DifficultyPreset, GameConfig } from "./types";
 import { DEFAULT_THEME_ID } from "./themes";

@@ -3,8 +3,9 @@
 An interactive drop-in station for **Ada Lovelace Day** (Coding Pirates Odense).
 Children use a micro:bit as a "radio receiver": they tilt it to sweep a needle
 across a radio dial on a big TV, hunt hidden signals by their signal strength,
-lock onto them, and collect a secret message. The hardest level makes the signal
-**hop between frequencies** — Hedy Lamarr's frequency-hopping idea.
+lock onto them, and collect a secret message. On the harder levels the signal
+**slides across the dial** and you have to follow it to hold on — Hedy Lamarr's
+frequency-hopping idea, made catchable.
 
 4–8 (up to 10) children tune at once, each with their own micro:bit and their own
 field on the screen.
@@ -19,7 +20,7 @@ field on the screen.
 ```
 
 One-way data flow, kept deliberately simple for reliability. **All game content
-(station positions, the secret message, hop behaviour) lives in the web app** —
+(station positions, the secret message, how the signal moves) lives in the web app** —
 the firmware is "dumb" and only reports its own needle position. So difficulty
 and puzzles can be changed live with no re-flashing, and the whole game runs and
 is tested **without any hardware** via the built-in simulator.
@@ -81,13 +82,21 @@ children never see it.
 
 ## Difficulty
 
-- **Grøn** — 3 wide, clustered stations, no decoys. Spells `ADA`.
-- **Gul** — 4 narrower, spread-out stations + 2 decoy "fake signals". Spells `HEDY`.
-- **Rød** — 4 narrow stations, and the **last remaining signal hops** between
-  frequencies. Spells `HEDY`.
+Three rungs, and **each field climbs them independently** — a child who finishes
+a level moves up on their own screen while their neighbours stay where they are.
+A newly connected micro:bit starts on grøn.
 
-Both **word mode** (a letter per station) and **picture mode** (a puzzle tile per
-station) are supported and switchable per difficulty.
+- **Grøn** — 3 wide, clustered stations, standing still. Spells `ADA`.
+- **Gul** — 4 narrower stations, spread out, and the signal now **moves**: it
+  slides back and forth around its home position at 110 units/s. Spells `HEDY`.
+- **Rød** — 5 narrower stations still, moving faster (135 units/s) and wandering
+  further, and the directional arrow only appears when you are nearly on top of
+  one. Spells `GRACE`.
+
+The moving levels are tuned so a *still* needle can never catch a signal: it
+passes through a station's window in less time than the lock hold requires, so
+you have to track it. Both **word mode** (a letter per station) and **picture
+mode** (a puzzle tile per station) are supported and switchable per difficulty.
 
 ## Firmware
 
@@ -103,7 +112,7 @@ npm run shots        # in another — writes /screenshots at 1080p and 4K
 
 `npm run shots` drives the app (in simulator mode) through every key UI state —
 waiting, static, warming up, locking, progress, complete, 4/6/8 layouts, picture
-mode, red/hop, and the debug panel — and saves PNGs for review.
+mode, red level, dark mode, and the debug panel — and saves PNGs for review.
 
 ## Project notes
 

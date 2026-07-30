@@ -43,5 +43,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# launchpad local cache (the binding and the mirror are committed)
-ai-instructions/.launchpad-snapshot.json
+# launchpad: everything is committed on purpose — the binding
+# (.launchpad.json), the human-readable mirror (LAUNCHPAD.md) and the machine-
+# readable snapshot (.launchpad-snapshot.json). The snapshot is the only
+# re-pushable backup of this project's tasks/ideas/notes if Launchpad's own
+# database loses them; it was needed once already, on 2026-07-30.

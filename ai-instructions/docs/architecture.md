@@ -31,7 +31,7 @@ engine only reads that map. So the game is identical with or without hardware.
 | `src/game/themes.ts` | Field identities (icon/name/accent) per theme. |
 | `src/game/pictures.ts` | Inline-SVG scenes for picture mode. |
 | `src/game/presets.ts` | Difficulty presets + default config. |
-| `src/game/gameFactory.ts` | Build stations/decoys from a preset; hop logic. |
+| `src/game/gameFactory.ts` | Build stations/decoys from a preset; signal-movement logic. |
 | `src/game/store.ts` | Zustand store (config/devices/snapshots/serial/sim/debug). |
 | `src/game/engine.ts` | The loop: assignment, game logic, draw, snapshots, events. |
 | `src/render/drawField.ts` | Retro dial rendering (faceplate + dynamic layers). |

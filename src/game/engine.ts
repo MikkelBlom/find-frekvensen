@@ -2,7 +2,8 @@
 //   1. ticks the simulator (if enabled) so virtual devices update
 //   2. reads device inputs + config from the store
 //   3. assigns online devices to free fields, frees offline ones
-//   4. advances each field's game logic (warmth, lock, reveal, complete, hop)
+//   4. advances each field's game logic (warmth, lock, reveal, complete, and
+//      sliding the signal on the moving levels)
 //   5. draws every attached canvas
 //   6. pushes low-rate snapshots to the store for React chrome
 //

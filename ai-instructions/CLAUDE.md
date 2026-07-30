@@ -5,8 +5,9 @@
 An interactive station for **Ada Lovelace Day** (Coding Pirates Odense, 12 Oct
 2026). Children hold a micro:bit and tilt it to move a needle across a retro
 radio dial shown on a big TV. They hunt hidden "stations" by signal strength,
-hold to lock, and collect a secret message. Hardest level: the signal **hops**
-between frequencies (Hedy Lamarr's frequency hopping). 4–8 (up to 10) kids tune
+hold to lock, and collect a secret message. On the harder levels the signal
+**slides** back and forth across the dial, so you have to follow it to capture it
+(Hedy Lamarr's frequency hopping, made catchable). 4–8 (up to 10) kids tune
 simultaneously, each with their own micro:bit and their own field on screen.
 
 Three parts, one-way data flow:
@@ -18,9 +19,9 @@ Receiver micro:bit ×N --radio--> Base-station micro:bit --USB/serial--> Next.js
 ## Critical invariants (do not violate)
 
 1. **Firmware stays dumb.** The micro:bit only reports its own needle position
-   (`<serial>|<pos>|<flags>`). ALL game logic (stations, warmth, lock, hop,
-   message) lives in the web app. This is what lets us change puzzles without
-   re-flashing and develop/test with zero hardware.
+   (`<id>|<pos>|<flags>|<checksum>`). ALL game logic (stations, warmth, lock,
+   signal movement, message) lives in the web app. This is what lets us change
+   puzzles without re-flashing and develop/test with zero hardware.
 2. **The whole game must run in the simulator, no hardware.** Sim and serial
    both write into the same `devices` map the engine reads — they are
    interchangeable. Never add game logic that only works with real serial.

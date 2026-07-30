@@ -11,7 +11,7 @@
 // uses as the key to give each child their own field on screen.
 //
 // The micro:bit is intentionally "dumb": it only reports where its needle is.
-// ALL game logic — stations, warmth, lock, frequency-hopping, the secret
+// ALL game logic — stations, warmth, lock, how the signal moves, the secret
 // message — lives in the web app, so puzzles can change with zero re-flashing.
 //
 // Behaviour:

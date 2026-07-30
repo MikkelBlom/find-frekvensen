@@ -1,7 +1,7 @@
 // Core domain types for "Find Frekvensen".
 //
-// Design note: ALL game content (station positions, secret message, hop
-// behaviour) lives in the web app. The micro:bit firmware is intentionally
+// Design note: ALL game content (station positions, secret message, how the
+// signal moves) lives in the web app. The micro:bit firmware is intentionally
 // "dumb" — it only reports its own needle position. That keeps difficulty
 // tuning here, testable without any hardware.
 
@@ -61,7 +61,7 @@ export interface DecoyDef {
 /**
  * A live, editable difficulty definition. Switching difficulty loads a fresh
  * copy of one of the PRESETS; the debug panel may then mutate this working copy
- * (message, positions, hop) without touching the originals.
+ * (message, positions, movement) without touching the originals.
  */
 export interface DifficultyPreset {
   id: DifficultyId;

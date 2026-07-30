@@ -176,7 +176,7 @@ const scenarios = [
     },
   },
   {
-    name: "j-red-hop",
+    name: "j-red-moving",
     async run(page) {
       await setup(page, { theme: "space", fields: 6, devices: 6, mode: "solve" });
       await waitAssigned(page, 6);
