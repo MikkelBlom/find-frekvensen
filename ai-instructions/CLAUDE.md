@@ -63,7 +63,7 @@ See `INDEX.md` for the rest of the notes files.
 ## Launchpad
 
 This project is tracked in **Launchpad**, a local service on http://localhost:7420 that owns
-Mikkel's notes, ideas, and tasks for every project. **It is Launchpad project #35 ("Ada Lovelace Day Program").**
+Mikkel's notes, ideas, and tasks for every project. **It is Launchpad project #13 ("Ada Lovelace Day Program")** — but that id has moved before, so confirm with `launchpad whoami` rather than trusting this number.
 Launchpad's database is the source of truth — not the markdown in this repo.
 
 ```bash
@@ -71,7 +71,8 @@ launchpad pull --json      # read this project's tasks/ideas/notes (nothing writ
 launchpad guide            # the full command set, with the push-plan schema
 ```
 
-Every `launchpad` command run inside this folder targets project #35 automatically.
+Every `launchpad` command run inside this folder targets the right project automatically —
+resolution is by folder path, and a stale id in `.launchpad.json` gets corrected on its own.
 Write back with `launchpad task add "…"`, `launchpad idea add "…"`, `launchpad note add "…"`,
 `launchpad set description "…"`, `launchpad tag add <name>`, or a batch `launchpad push plan.json`.
 

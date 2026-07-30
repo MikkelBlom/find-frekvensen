@@ -288,27 +288,30 @@ before the day.
 **Summary:** Re-established Launchpad tracking after the project's id moved and
 its data didn't come with it. No app code touched.
 
-- **The project is now #35, not #13.** Id 13 belongs to "Program Management
-  System" today. Project #35 held nothing but a truncated auto-generated
-  description — all 6 open tasks, 11 ideas and 8 notes pushed on 2026-07-28 were
+- **The project had become #35, not #13.** Id 13 belonged to "Program Management
+  System" at the time. Project #35 held nothing but a truncated auto-generated
+  description — all 6 open tasks, 11 ideas and 9 notes pushed on 2026-07-28 were
   gone, and `launchpad log` showed no history to explain it. A cross-project
   `launchpad search` found none of the items anywhere, so they weren't merged
-  into another project.
-- **Recovered from `.launchpad-snapshot.json`** — which is *gitignored*, so it
-  existed on this disk only and the recovery was luck. (The durable copy is
-  `LAUNCHPAD.md`: tracked, and on GitHub. Keep committing it.) Re-pushed the
-  full description, six tags, the tasks,
-  ideas and notes; verified each one still matches the code before pushing
-  (the difficulty-ladder note against `src/game/presets.ts`, the GitHub-remote
-  note against `git remote -v`, the port against `package.json`/`launch.json`).
-- **Tag naming** aligned to Launchpad's existing global registry — `ui` instead
-  of a near-duplicate `ux`, `ops`+`electron` instead of a single-use `build`.
-- **Two new items** grounded in what the repo actually says: a task for the stale
-  red-level descriptions (below), and a note recording the #13 → #35 move so the
-  next session doesn't read the old id in these notes and get lost.
-- Port **7430** re-claimed explicitly for #35 (it was only being inferred from
+  into another project. **(Later the same day this reversed: Mikkel fixed the
+  underlying Launchpad migration bug and restored its database, which renumbered
+  every project and put this one back at #13 with its 2026-07-28 contents. The
+  lesson that survives is the one below — resolve by `launchpad whoami`, never
+  by an id written in these notes.)**
+- **Recovered from `.launchpad-snapshot.json`** — which was *gitignored* at the
+  time, so it existed on this disk only and the recovery was luck. Re-pushed the
+  full description, six tags, the tasks, ideas and notes; verified each one still
+  matches the code before pushing (the difficulty-ladder note against
+  `src/game/presets.ts`, the GitHub-remote note against `git remote -v`, the port
+  against `package.json`/`launch.json`). Both mirrors are now committed, so
+  there is an off-machine copy either way.
+- Port **7430** re-claimed explicitly (it was only being inferred from
   `.claude/launch.json`), and the stale "no port claimed yet" line in this
   folder's `CLAUDE.md` Launchpad block replaced with the actual port.
+
+The database restore later that day superseded most of this: the re-pushed items
+came back on their own under #13, so what actually survives from the recovery is
+the port claim, the two mirrors being tracked, and the doc fixes below.
 
 **Found but not fixed** (captured as a Launchpad task instead): three places
 still describe the pre-2026-07-23 game — teleport hopping, yellow with 2 decoys,
@@ -366,3 +369,11 @@ own.
 **Next steps:** unchanged — the venue-room range/load test and final re-flash
 (Mikkel is handling those), the .exe launch test, visual-regression baselines,
 the firmware rename decision.
+
+**Left undone:** one Launchpad task could not be written — `launchpad task add`
+and `launchpad push` were repeatedly refused by this session's permission
+classifier (while `note add`, `set description` and reads went through, so it was
+flaky rather than a rule). The completed docs task above is therefore recorded
+here and in git but not in Launchpad; the ready-to-run command was handed to
+Mikkel. `LAUNCHPAD.md` and `.launchpad-snapshot.json` in this commit are also a
+pull behind for the same reason — one `launchpad pull` refreshes both.
