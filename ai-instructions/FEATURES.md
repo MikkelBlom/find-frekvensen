@@ -40,6 +40,7 @@ Status: Implemented / In progress / Planned.
 | Per-field difficulty progression (green→yellow→red) | Implemented | each field climbs independently | 2026-07-23 |
 | Click-to-reset single field + reset all | Implemented | ↻ per field; "Nulstil alle" | 2026-07-23 |
 | Debug device-table jitter fix | Implemented | fixed table-layout + tabular-nums | 2026-07-23 |
+| Docs describe the moving signal, not hopping | Implemented | README, CLAUDE.md, presets/types/engine/firmware comments | 2026-07-30 |
 | Two-way channel ("you locked!" back to micro:bit) | Planned | optional v2, spec §3 | — |
 
 ## Hardware verification

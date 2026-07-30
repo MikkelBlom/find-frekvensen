@@ -322,3 +322,47 @@ agent reads as ground truth.
 - Fix those three stale descriptions.
 - Unchanged from before: final re-flash, the venue-room range/load test, the
   .exe launch test, visual-regression baselines, the firmware rename decision.
+
+---
+
+## 2026-07-30 — Claude Code (Opus 5) — Stale-mechanics cleanup (same day)
+
+**Summary:** Fixed the stale red-level descriptions found in the session above,
+and made the Launchpad snapshot a tracked backup. No behaviour changed — every
+edit is a comment, a doc, or a filename.
+
+- **Eight places** still described the pre-2026-07-23 game, not three. Beyond
+  `README.md`, `ai-instructions/CLAUDE.md` and the `src/game/presets.ts` header,
+  the same "hop" language survived in one-line comments in `src/game/types.ts`
+  (×2), `src/game/engine.ts`, `firmware/receiver.js` and
+  `docs/architecture.md`'s module map. All corrected to the sliding signal.
+- **`CLAUDE.md` invariant #1 was also stale on the wire format** — it still
+  showed the pre-checksum `<serial>|<pos>|<flags>`. Now
+  `<id>|<pos>|<flags>|<checksum>`.
+- **README Difficulty section** rewritten to the real ladder (grøn 3 stationary
+  ADA / gul 4 moving 110 u/s HEDY / rød 5 moving 135 u/s GRACE, no decoys), plus
+  two things it never said: each field climbs independently, and the moving
+  levels are tuned so holding still can never win.
+- **Renamed the `j-red-hop` shots scenario to `j-red-moving`** (and `git mv`'d
+  its PNG). Done now precisely because the visual-regression baselines don't
+  exist yet — after that task lands, the name is expensive to change.
+- **`.launchpad-snapshot.json` is no longer gitignored.** It was the only copy
+  of this project's Launchpad data during the recovery earlier today and it
+  lived on one disk. It is the machine-readable, re-pushable backup that
+  `LAUNCHPAD.md` isn't; both are now committed.
+
+**Deliberately left alone:** the "hop" mentions in `FEATURES.md`,
+`FUTURE_IDEAS.md` and earlier `SESSIONS.md` entries — those are historical
+records of the replacement, and `types.ts:84` already describes the mechanic
+correctly.
+
+**Not a re-flash:** the `firmware/receiver.js` change is a comment. The flashed
+behaviour is unchanged; don't let the modified file trigger a re-flash on its
+own.
+
+**State:** `npx tsc --noEmit` and `npx eslint .` both clean. Did not run
+`npm run shots` — nothing rendered changed, so the existing PNGs still stand.
+
+**Next steps:** unchanged — the venue-room range/load test and final re-flash
+(Mikkel is handling those), the .exe launch test, visual-regression baselines,
+the firmware rename decision.
