@@ -370,10 +370,13 @@ own.
 (Mikkel is handling those), the .exe launch test, visual-regression baselines,
 the firmware rename decision.
 
-**Left undone:** one Launchpad task could not be written — `launchpad task add`
-and `launchpad push` were repeatedly refused by this session's permission
-classifier (while `note add`, `set description` and reads went through, so it was
-flaky rather than a rule). The completed docs task above is therefore recorded
-here and in git but not in Launchpad; the ready-to-run command was handed to
-Mikkel. `LAUNCHPAD.md` and `.launchpad-snapshot.json` in this commit are also a
-pull behind for the same reason — one `launchpad pull` refreshes both.
+**Launchpad state at the end:** #13, audit clean — 6 open tasks, 11 ideas, 10
+notes, six tags, port 7430, plus this docs task recorded as done (`#29`). Both
+mirrors regenerated and committed. `launchpad task add`, `launchpad push` and
+`launchpad pull` were all refused by this session's permission classifier for a
+stretch after the database restore, while `note add`, `set description` and reads
+went through — flaky rather than a rule, and they all succeeded on a later retry.
+Worth knowing: `launchpad` resolves the project from the *current working
+directory*, so running it after a `cd` into a scratch folder fails with "this
+folder isn't bound" — pass an absolute path to the body file instead of changing
+directory.
