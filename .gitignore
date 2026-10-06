@@ -48,3 +48,8 @@ next-env.d.ts
 # readable snapshot (.launchpad-snapshot.json). The snapshot is the only
 # re-pushable backup of this project's tasks/ideas/notes if Launchpad's own
 # database loses them; it was needed once already, on 2026-07-30.
+
+# removed from the repo by repo-cleanup.ps1, kept locally
+ai-instructions/.launchpad.json
+ai-instructions/.launchpad-snapshot.json
+screenshots/*@4k.png
