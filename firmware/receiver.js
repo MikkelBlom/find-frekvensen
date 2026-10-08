@@ -83,7 +83,9 @@ basic.forever(function () {
   radio.sendString(payload + "|" + checksum(payload));
   flags = 0;
 
-  basic.pause(TICK_MS);
+  // Random jitter so handhelds that were switched on together don't stay in
+  // lock-step and keep colliding on the radio (it has no collision avoidance).
+  basic.pause(TICK_MS + randint(0, 30));
 });
 
 // Rolling hash over the payload, 0..9999. The web app (src/serial/protocol.ts)

@@ -9,13 +9,17 @@
 // It serves the statically-exported Next app (../out) over http://127.0.0.1 (a
 // secure context) and loads it in a fullscreen window.
 
-const { app, BrowserWindow, session } = require("electron");
+const { app, BrowserWindow, powerSaveBlocker, session } = require("electron");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const OUT_DIR = path.join(__dirname, "..", "out");
 const MICROBIT_VENDOR_ID = 0x0d28; // BBC micro:bit (ARM mbed / DAPLink)
+// Fixed port (claimed in Launchpad) so the page origin — and with it the saved
+// settings in localStorage — is the same on every launch. A random port gave a
+// new origin each time, so field count / theme / level tuning were forgotten.
+const APP_PORT = 7446;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -80,9 +84,12 @@ function startServer() {
         return sendFile(filePath);
       });
     });
-    server.listen(0, "127.0.0.1", () => {
-      resolve(server.address().port);
+    // Prefer the fixed port; if something else holds it, fall back to a random
+    // one so the app still starts (settings just won't carry over that run).
+    server.once("error", () => {
+      server.listen(0, "127.0.0.1", () => resolve(server.address().port));
     });
+    server.listen(APP_PORT, "127.0.0.1", () => resolve(server.address().port));
   });
 }
 
@@ -106,6 +113,10 @@ function wireSerial(sess) {
 
 async function createWindow() {
   const port = await startServer();
+
+  // Children only tilt the micro:bits and never touch the PC, so Windows would
+  // otherwise blank the TV after its idle timeout.
+  powerSaveBlocker.start("prevent-display-sleep");
 
   const win = new BrowserWindow({
     width: 1600,

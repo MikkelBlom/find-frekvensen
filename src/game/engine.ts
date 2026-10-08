@@ -73,6 +73,7 @@ export class GameEngine {
   private interval: ReturnType<typeof setInterval> | null = null;
   private lastFrame = 0;
   private lastSnapshot = 0;
+  private lastPrune = 0;
   private running = false;
   private frameTimes: number[] = [];
   private simulator: Simulator | null = null;
@@ -126,7 +127,9 @@ export class GameEngine {
   /** Reset a single field back to the first level (the UI reset button). */
   resetPanelToStart(index: number): void {
     const p = this.panels[index];
-    if (!p) return;
+    // An empty field has no player — starting a game there would just leave
+    // a ghost puzzle running until someone joins.
+    if (!p || !p.serial) return;
     p.levelIndex = 0;
     this.startGame(p);
   }
@@ -224,6 +227,10 @@ export class GameEngine {
 
     // 3) assignment
     this.updateAssignments(state.devices, now);
+    if (now - this.lastPrune > 1000) {
+      this.lastPrune = now;
+      this.pruneDevices(state.devices, now);
+    }
 
     // 4 + 5) logic + draw
     for (const p of this.panels) {
@@ -280,11 +287,13 @@ export class GameEngine {
   }
 
   private updateAssignments(devices: Record<Serial, DeviceState>, now: number): void {
-    // Free panels whose device vanished or went offline.
+    // Free panels whose device has been silent for a long time. A short radio
+    // dropout (hand over the antenna, loose battery, base station replugged)
+    // only pauses the field — the child keeps their level and found letters.
     for (const p of this.panels) {
       if (!p.serial) continue;
       const d = devices[p.serial];
-      if (!d || now - d.lastSeenMs > tokens.timing.offlineMs) {
+      if (!d || now - d.lastSeenMs > tokens.timing.releaseMs) {
         p.serial = null;
         p.phase = "waiting";
         p.stations = [];
@@ -301,6 +310,9 @@ export class GameEngine {
       if (assigned.has(serial)) continue;
       const d = devices[serial];
       if (now - d.lastSeenMs > tokens.timing.offlineMs) continue;
+      // A corrupted line can occasionally pass the checksum and look like a new
+      // id. Real handhelds send ~10/s, so require a few packets before joining.
+      if (d.packets < tokens.timing.joinPackets) continue;
       const free = this.panels.find((p) => p.serial === null);
       if (!free) break; // more devices than fields — extras wait
       free.serial = serial;
@@ -308,6 +320,13 @@ export class GameEngine {
       free.needlePos = d.pos; // set BEFORE startGame so the layout avoids it
       assigned.add(serial);
       this.startGame(free);
+    }
+  }
+
+  /** Forget devices that have been silent for ages (phantoms, switched-off units). */
+  private pruneDevices(devices: Record<Serial, DeviceState>, now: number): void {
+    for (const serial of Object.keys(devices)) {
+      if (now - devices[serial].lastSeenMs > tokens.timing.forgetMs) store.get().removeDevice(serial);
     }
   }
 
@@ -347,6 +366,7 @@ export class GameEngine {
     }
 
     const preset = this.levelFor(p);
+    const signalLost = isSignalLost(device, now);
 
     // Needle follows the device position, smoothed for a fluid feel.
     if (device) {
@@ -404,7 +424,9 @@ export class GameEngine {
         : 0;
 
     // Lock: needle held inside a real station's window for lockMs continuous.
-    if (lockable && nearest) {
+    // Never while the signal is lost — the needle is frozen at its last known
+    // spot, and a drifting station must not lock itself onto it.
+    if (lockable && nearest && !signalLost) {
       if (p.lockingStationId === nearest.id) {
         p.lockProgress += dt / preset.lockMs;
       } else {
@@ -540,6 +562,7 @@ export class GameEngine {
         levelId: preset.id,
         levelLabel: preset.label,
         ageMs: device ? now - device.lastSeenMs : -1,
+        signalLost: p.serial != null && isSignalLost(device, now),
       };
     });
     store.get().setSnapshots(snaps);
@@ -563,6 +586,10 @@ export class GameEngine {
       }
     }
   }
+}
+
+function isSignalLost(device: DeviceState | undefined, now: number): boolean {
+  return !device || now - device.lastSeenMs > tokens.timing.offlineMs;
 }
 
 function clamp(v: number, min: number, max: number): number {

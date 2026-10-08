@@ -45,6 +45,7 @@ export function RadioField({ index }: { index: number }) {
   const foundTiles = new Set(items.filter((i) => i.foundAtMs != null).map((i) => Number(i.payload)));
   const completeWord = items.map((i) => i.payload).join("");
   const active = phase !== "waiting";
+  const signalLost = phase === "tuning" && (snap?.signalLost ?? false);
   const isActive = debugVisible && activeField === index;
 
   return (
@@ -133,6 +134,26 @@ export function RadioField({ index }: { index: number }) {
             </div>
             <span className="idle-pulse" style={{ fontSize: "4.4cqmin", fontWeight: 700, color: palette.textMuted }}>
               Vip micro:bit&apos;en for at tune ind
+            </span>
+          </div>
+        )}
+
+        {signalLost && (
+          // Radio dropout: the field is paused and kept for the child (see
+          // tokens.timing.releaseMs), so say so instead of looking frozen.
+          <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: "none" }}>
+            <span
+              style={{
+                fontSize: "4.6cqmin",
+                fontWeight: 800,
+                padding: "1.4cqmin 3cqmin",
+                borderRadius: "999px",
+                color: palette.title,
+                background: palette.completeScrim,
+                border: `0.4cqmin solid ${palette.warn}`,
+              }}
+            >
+              Mister signal …
             </span>
           </div>
         )}

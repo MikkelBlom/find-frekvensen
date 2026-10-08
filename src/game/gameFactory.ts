@@ -83,9 +83,22 @@ function mapToSegments(t: number, segs: Segment[]): number {
   return segs[segs.length - 1][1];
 }
 
+function segmentsLength(segs: Segment[]): number {
+  return segs.reduce((a, [s, e]) => a + (e - s), 0);
+}
+
+/** Fisher–Yates shuffle (in place). */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /** Evenly distribute `count` positions across the segments, with jitter. */
 function placeInSegments(segs: Segment[], count: number, jitterFrac: number): number[] {
-  const total = segs.reduce((a, [s, e]) => a + (e - s), 0);
+  const total = segmentsLength(segs);
   const cell = total / count;
   const out: number[] = [];
   for (let i = 0; i < count; i++) {
@@ -103,13 +116,31 @@ function placeInSegments(segs: Segment[], count: number, jitterFrac: number): nu
 export function createLayout(preset: DifficultyPreset, avoidPos = 500): FieldLayout {
   const count = stationCountFor(preset);
 
-  const usableSpan = USABLE_HI - USABLE_LO;
-  const span = usableSpan * clamp01(preset.spread);
-  const lo = Math.max(USABLE_LO, 500 - span / 2);
-  const hi = Math.min(USABLE_HI, 500 + span / 2);
+  // Neighbouring capture windows must not touch: two stations on one spot
+  // would hand out two letters for one find. Widest possible window + margin.
+  const minGap = preset.width * (1 + preset.widthJitter) * 1.15;
 
-  const segs = usableSegments(lo, hi, avoidPos);
-  const positions = placeInSegments(segs, count, 0.28);
+  // Start from the preset's spread; if the needle's dead-zone eats so much of
+  // it that stations would crowd together, widen the spread until they fit
+  // (up to the whole dial).
+  const usableSpan = USABLE_HI - USABLE_LO;
+  let spread = clamp01(preset.spread);
+  let segs: Segment[];
+  for (;;) {
+    const span = usableSpan * spread;
+    const lo = Math.max(USABLE_LO, 500 - span / 2);
+    const hi = Math.min(USABLE_HI, 500 + span / 2);
+    segs = usableSegments(lo, hi, avoidPos);
+    if (segmentsLength(segs) / count >= minGap * 1.6 || spread >= 1) break;
+    spread = Math.min(1, spread + 0.05);
+  }
+
+  // Jitter at most what keeps neighbours ≥ minGap apart (cell·(1−2j) ≥ minGap).
+  const cell = segmentsLength(segs) / count;
+  const jitter = clamp((1 - minGap / cell) / 2, 0, 0.28);
+  // Shuffle so the letters aren't laid out left-to-right in message order —
+  // otherwise the dial position gives away where the next letter is.
+  const positions = shuffle(placeInSegments(segs, count, jitter));
 
   const stations: StationDef[] = positions.map((position, i) => {
     const width = Math.max(

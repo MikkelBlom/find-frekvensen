@@ -180,7 +180,9 @@ export function useAppRuntime() {
         // preventDefault so a focused slider/select doesn't also react.
         e.preventDefault();
         if (serialId) sim.nudge(serialId, e.key === "ArrowLeft" ? -step : step);
-      } else if (e.key === "r" || e.key === "R") {
+      } else if ((e.key === "r" || e.key === "R") && store.get().debug.visible) {
+        // Operator shortcut — only with the debug panel open, so a stray key
+        // press can't wipe every child's progress.
         engine.resetAllToStart();
       }
     };

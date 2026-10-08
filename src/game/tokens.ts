@@ -23,7 +23,10 @@ export const tokens = {
     completeHoldMs: 7000, // celebrate before advancing/reset
     lockFlashMs: 500,
     needleTauMs: 55, // needle smoothing time constant
-    offlineMs: 2000, // device considered offline after this
+    offlineMs: 2000, // no packet for this long = "signal lost" (field paused)
+    releaseMs: 30000, // no packet for this long = field freed for someone else
+    forgetMs: 120000, // drop a silent device from the device map entirely
+    joinPackets: 3, // packets before a new id gets a field (filters phantoms)
     snapshotHz: 12, // store snapshot rate
   },
 } as const;

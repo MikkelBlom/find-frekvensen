@@ -64,7 +64,12 @@ All handhelds share one radio group, so total traffic is
 `TICK_MS = 100` that's ~100 packets/sec and some will collide and drop — this is
 harmless (positions are latest-wins and the app smooths), but if a big crowd
 makes the needles feel laggy or jumpy, **raise `TICK_MS` to 130–150** on the
-handhelds to thin the traffic.
+handhelds to thin the traffic. Each send also waits a random 0–30 ms extra, so
+units switched on at the same moment don't stay in lock-step and collide on
+every packet.
+
+If a handheld does go quiet, its field shows "Mister signal …" and is kept for
+30 s (level and found letters intact) before it is freed for someone else.
 
 If tilting feels too hard for the youngest children, you can lean entirely on
 the **A / B buttons** for stepping — the app treats the reported position the

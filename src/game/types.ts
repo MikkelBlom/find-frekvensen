@@ -162,6 +162,8 @@ export interface PanelSnapshot {
   levelLabel: string;
   /** Milliseconds since this panel's device was last seen (for debug). */
   ageMs: number;
+  /** Field has a player but no packets lately (radio dropout); game paused. */
+  signalLost: boolean;
 }
 
 /** Field identity (icon + name) for one panel index. Accent comes from the palette. */

@@ -380,3 +380,34 @@ Worth knowing: `launchpad` resolves the project from the *current working
 directory*, so running it after a `cd` into a scratch folder fails with "this
 folder isn't bound" — pass an absolute path to the body file instead of changing
 directory.
+
+## 2026-10-08 — Claude Code (Opus 5.5) — Pre-event bug pass and fixes
+
+**Summary:** Read-only review, then fixed everything it found:
+- Radio dropout no longer resets a child: 2 s → "Mister signal …" pause (no
+  locking), field and level kept for 30 s, then freed. New ids need 3 packets to
+  join (phantom filter); silent devices are forgotten after 2 min; the "N
+  spillere" chip counts only live handhelds.
+- Web Serial: silent auto-connect at startup and on USB re-plug (prefers the
+  micro:bit vendor id); close sequence fixed (see WORKING_NOTES); buffer capped.
+- Electron: fixed port 7446 so settings survive restarts; `powerSaveBlocker`
+  keeps the TV awake.
+- Layout: capture windows never overlap at start; letter order shuffled.
+- Field reset button ignores empty fields; `r` only works with the debug panel open.
+- Firmware: random 0–30 ms jitter per send (needs a re-flash of the handhelds).
+- `serve` added as devDependency so `npm run serve` works offline.
+
+**Verified:** tsc + eslint clean; in the browser — phantom (1 packet) not
+assigned, real id assigned, 5 s dropout kept field + found letter and showed the
+overlay, release after 30 s; 450 generated layouts: min neighbour gap 118 on
+green (max window 99), letter order random. `npm run shots` regenerated and
+checked; `.exe` rebuilt.
+
+**Not verified:** anything needing hardware — Afbryd → Forbind, unplug/replug
+auto-reconnect, the jittered firmware. The new .exe was built but not launched
+(would take over the screen fullscreen).
+
+**Next steps:** re-flash all handhelds with the new `receiver.js`; on real
+hardware test unplug/replug of the base station mid-game and Afbryd → Forbind;
+launch the .exe twice and confirm the field count sticks.
+

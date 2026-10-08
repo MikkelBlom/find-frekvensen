@@ -5,13 +5,21 @@ import { getAudio } from "@/audio/sound";
 import { getSerialManager } from "@/serial/webserial";
 import { getEngine } from "@/game/engine";
 import { usePalette } from "@/lib/usePalette";
+import { tokens } from "@/game/tokens";
 import type { Palette } from "@/game/palette";
 
 export function TopBar() {
   const palette = usePalette();
   const soundEnabled = useStore((s) => s.config.soundEnabled);
   const themeMode = useStore((s) => s.config.themeMode);
-  const deviceCount = useStore((s) => Object.keys(s.devices).length);
+  // Live handhelds only: not ones that went quiet, and not a one-off phantom id
+  // from a corrupted line. Re-evaluated on every store update (≥12/s).
+  const deviceCount = useStore((s) => {
+    const now = performance.now();
+    return Object.values(s.devices).filter(
+      (d) => d.packets >= tokens.timing.joinPackets && now - d.lastSeenMs <= tokens.timing.offlineMs,
+    ).length;
+  });
   const simEnabled = useStore((s) => s.sim.enabled);
   const serial = useStore((s) => s.serial);
   const toggleSound = useStore((s) => s.toggleSound);

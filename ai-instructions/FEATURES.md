@@ -18,16 +18,16 @@ Status: Implemented / In progress / Planned.
 | Field identity themes (numbers/animals/space/pioneers) | Implemented | swappable in debug | 2026-07-21 |
 | Difficulty presets (green/yellow/red) + live edit | Implemented | editable working copy | 2026-07-21 |
 | Frequency hopping (red) | Replaced | teleport hop → moving signal, see below | 2026-07-23 |
-| Multi-field grid 1–10 + auto assignment | Implemented | offline timeout frees fields | 2026-07-21 |
+| Multi-field grid 1–10 + auto assignment | Implemented | 2 s silence = "Mister signal" pause; 30 s = field freed; 3 packets to join | 2026-07-21 (grace 2026-10-08) |
 | Simulator (sweep/solve/manual/idle) | Implemented | drives whole game, no hardware | 2026-07-21 |
-| Web Serial reader + graceful reconnect | Implemented | tolerant line parser | 2026-07-21 |
+| Web Serial reader + auto-reconnect | Implemented | silent connect at start + on USB re-plug; safe close | 2026-07-21 (auto 2026-10-08) |
 | Optional WebAudio (lock/complete) | Implemented | starts muted; pure plus | 2026-07-21 |
 | Debug panel (serial/devices/sim/god-mode/overlays) | Implemented | toggle with `d` | 2026-07-21 |
 | Keyboard control (select field, arrows, reset) | Implemented | `src/lib/useAppRuntime.ts` | 2026-07-21 |
 | Playwright screenshot self-test (1080p + 4K) | Implemented | `npm run shots` | 2026-07-21 |
 | Receiver + base-station firmware (MakeCode) | Implemented | `firmware/` | 2026-07-21 |
 | Visual regression baseline compare | Planned | spec §7.1.4 (optional) | — |
-| Portable Electron .exe (offline, auto-connect) | Implemented | `npm run exe`; static export + loopback server | 2026-07-23 |
+| Portable Electron .exe (offline, auto-connect) | Implemented | `npm run exe`; loopback server on fixed port 7446; blocks display sleep | 2026-07-23 |
 | Settings persisted across refresh | Implemented | localStorage, versioned (bump resets levels) | 2026-07-23 |
 | Honest capture feedback | Implemented | bar/sharpness top out only inside a lock window | 2026-07-23 |
 | Directional arrow hint | Implemented | per-level `hintFrom` warmth threshold | 2026-07-23 |

@@ -56,6 +56,24 @@
 - **Both `checksum()` implementations must stay byte-identical** —
   `firmware/receiver.js` and `src/serial/protocol.ts`. Change one, change both,
   and re-flash every handheld.
+- **Short radio dropouts must not cost a child their progress** (2026-10-08).
+  `tokens.timing`: `offlineMs` 2 s only pauses the field ("Mister signal …", no
+  locking while paused); `releaseMs` 30 s frees it; `forgetMs` 120 s drops the
+  device; `joinPackets` 3 before a new id gets a field (a corrupted line passes
+  the 0–9999 checksum ~1 in 10 000 and used to spawn a phantom player).
+- **Web Serial close order** (2026-10-08). `port.close()` fails while the
+  decoder pipe still locks `port.readable`; that error was swallowed and left
+  the port open, so Afbryd → Forbind failed with "already open". `readLoop` now
+  owns the port: `pipeTo` promise kept, reader cancelled, pipe awaited, then
+  close. `disconnect()` just stops the loop and awaits it.
+- **Electron origin must be stable** (2026-10-08). The loopback server used a
+  random port, so every launch had a new origin and empty localStorage (field
+  count, theme, level edits lost). It now uses 7446 (claimed in Launchpad), with
+  a random-port fallback if taken.
+- **Station layout** (2026-10-08). Neighbouring capture windows are kept ≥
+  1.15 × widest window apart; if the needle's dead-zone squeezes the spread too
+  much, the spread widens (green then often uses the whole dial). Letters are
+  shuffled across positions so the dial no longer reads left-to-right.
 - **A moving signal must out-run a still needle.** Dwell time (window width ÷
   speed) is deliberately shorter than `lockMs` on yellow (0.53 s vs 0.65 s) and
   red (0.37 s vs 0.62 s), so you can only capture it by following it. Re-check
